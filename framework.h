@@ -16,5 +16,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+// 한글 출력 되도록 하는 라이브러리
+#include <imm.h>
 
 using namespace std;

@@ -125,10 +125,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static vector<string> vectext(1);
-    static vector<string> vecStorageText(100);
+    static vector<string> vecStorageText(1);
     static float fOffsetX;
     static float fOffsetY;
-    static int iCount, iLine, iTop;
+    static int iCount, iLine, iBackEmptyCount;
+    static POINT tCaretPos;
 
     OPENFILENAME OFN, SFN;
     TCHAR lpstrFile[100] = _T("");
@@ -146,6 +147,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         iCount = 0;
         fOffsetX = 5;
         fOffsetY = 20;
+        iBackEmptyCount = 1;
         CreateCaret(hWnd, NULL, 3, 15);
         break;
     case WM_COMMAND:
@@ -211,24 +213,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     break;
 
+
     case WM_KEYDOWN:
     {
         if (wParam == VK_BACK)
         {
-            vectext.at(vectext.size() - 1).pop_back();
-            iCount--;
+            if (!vectext.at(vectext.size() - 1).empty())
+            {
+                RECT rc = { 0, 0, 1, 1};
+                vectext.at(vectext.size() - 1).pop_back();
+                iCount--;
+                InvalidateRect(hWnd, &rc, TRUE);
+            }
+
+            else
+            {
+                if (iLine != 0)
+                {
+                    vectext.clear();
+                    vectext.push_back(vecStorageText.at(vecStorageText.size() - iBackEmptyCount));
+                    iBackEmptyCount++;
+                    --iLine;
+                }
+                
+            }
+            
+            
         }
 
         if (wParam == VK_RETURN)
         {
+            HideCaret(hWnd);
+
             iCount++;
             iLine++;
 
-            vecStorageText.assign(vectext.begin(), vectext.end());
+            vecStorageText.push_back(vectext.at(vectext.size() - 1));
             vectext.clear();
             vectext.resize(1);
 
-            HideCaret(hWnd);
+            
         }
         break;
     }
@@ -244,13 +268,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         
         for (int count = 0; count < vectext.size(); count++)
         {
-
             TextOutA(hdc, fOffsetX, fOffsetY * iLine, vectext.at(count).c_str(), vectext.at(count).length());
-            
-
         }
 
         SetCaretPos(size.cx + fOffsetX, iLine * fOffsetY);
+        tCaretPos = { size.cx + (LONG)fOffsetX , iLine * (LONG)fOffsetY };
         
         EndPaint(hWnd, &ps);
     }
@@ -258,7 +280,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_CHAR:
     {
-        if (iLine > 9)
+        if (iLine > 20)
         {
             MessageBox(hWnd, L"입력 가능 문자열 초과", L"메모장", MB_OK);
             iLine = 9;
@@ -270,13 +292,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 vectext.reserve(vectext.size() * 2);
             }
 
-            vectext.at(vectext.size() - 1).push_back(((TCHAR)wParam));
-            iCount++;
+            // 엔터키의 숫자는 무시한다.
+            if (!(wParam == VK_RETURN || wParam == VK_BACK))
+            {
+                vectext.at(vectext.size() - 1).push_back(((TCHAR)wParam));
+                iCount++;
+            }
             
         }
         InvalidateRect(hWnd, NULL, FALSE);
         break;
     }
+
     case WM_DESTROY:
         HideCaret(hWnd);
         DestroyCaret();
