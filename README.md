@@ -1,7 +1,6 @@
 MemoPad
 =============
 
-
 Contributors
 -------------
 1. JinHyunHong (Team Leader) 홍진현 학생
@@ -18,3 +17,9 @@ Contributors
 Description
 -------------
 A different notepad pad system
+
+--> [Document](https://www.dropbox.com/s/19kx2pv8sxr96jv/%EB%A9%94%EB%AA%A8%20%ED%8C%A8%EB%93%9C%20%EA%B8%B0%EB%8A%A5%20%EC%84%A4%EB%AA%85.pdf?dl=0)
+
+
+
+
