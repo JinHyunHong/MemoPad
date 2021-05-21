@@ -17,6 +17,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+void OutFromFile(TCHAR filename[], HWND hWnd);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -131,6 +132,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     static int iCount, iLine, iBackEmptyCount;
     static POINT tCaretPos;
 
+
     OPENFILENAME OFN, SFN;
     TCHAR lpstrFile[100] = _T("");
     static char filepath[100], filename[100];
@@ -178,10 +180,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 열기 대화상자를 보여준다.
             if (GetOpenFileName(&OFN) != 0)
             {
+                OutFromFile(OFN.lpstrFile, hWnd);
             }
             break;
 
         case ID_SAVE:
+        {
             memset(&SFN, 0, sizeof(OPENFILENAME));
             SFN.lStructSize = sizeof(OPENFILENAME);
             SFN.hwndOwner = hWnd;
@@ -190,13 +194,81 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SFN.nMaxFile = 256;
             SFN.lpstrInitialDir = _T(".");
             // 저장 대화상자를 보여준다.
+
+
+
             if (GetSaveFileName(&SFN) != 0)
             {
+                int iLen = 0;
+
+                // 경로에서 파일 이름 길이 구하기
+                for (int i = lstrlen(lpstrFile); i > 0; i--)
+                {
+                    if (lpstrFile[i - 1] == '\\')
+                    {
+                        break;
+                    }
+
+                    else
+                    {
+                        iLen++;
+                    }
+                }
+
+                char FileName[15];
+                memset(FileName, 0, sizeof(FileName));
+
+
+                // 파일 이름을 길이 만큼 새 변수에 저장한다.
+                for (int i = 1; i <= iLen; i++)
+                {
+                    FileName[iLen - i] = lpstrFile[(lstrlen(lpstrFile) - i)];
+                }
+
+                // .txt 출력 글자를 붙여준다.
+                FileName[iLen] = '.';
+                FileName[iLen + 1] = 't';
+                FileName[iLen + 2] = 'x';
+                FileName[iLen + 3] = 't';
+                
+
                 FILE* fSaveFile;
-                fopen_s(&fSaveFile, (const char*)SFN.lpstrFile, "w");
+                fopen_s(&fSaveFile, FileName, "wt");
+
+                if (fSaveFile)
+                {
+                    TCHAR buffer[500];
+                    memset(buffer, 0, sizeof(buffer));
+
+                    int ibufferLastIndex = 0;
+
+                    // 버퍼에 문자 읽어들이기
+                    for (int i = 1; i <= vecStorageText.size(); ++i)
+                    {
+                        for (int j = 0; j < vecStorageText.at(vecStorageText.size() - i).size(); ++j)
+                        {
+
+                            buffer[j + ibufferLastIndex] = vecStorageText.at(vecStorageText.size() - i).at(j);
+
+
+                            if (j + 1 >= vecStorageText.at(vecStorageText.size() - i).size())
+                            {
+                                ibufferLastIndex = j + ibufferLastIndex + 1;
+                            }
+
+                        }
+
+                        buffer[ibufferLastIndex] = CHAR('\n');
+                        ibufferLastIndex += 1;
+
+                    }
+                    _fputts(buffer, fSaveFile);
+                }
+
                 fclose(fSaveFile);
             }
             break;
+        }
 
         case ID_CaptureSave:
         {
@@ -335,3 +407,29 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
+
+// 파일을 읽어온다.
+void OutFromFile(TCHAR filename[], HWND hWnd)
+{
+    FILE* fReadFile;
+    HDC hdc;
+    int iLine;
+    TCHAR buffer[500];
+    iLine = 0;
+    hdc = GetDC(hWnd);
+#ifdef _UNICODE
+    _tfopen_s(&fReadFile, filename, _T("r, ccs = UNICODE"));
+#else
+    _tfopen_s(&fReadFile, filename, _T("r"));
+#endif
+    while (_fgetts(buffer, 100, fReadFile) != NULL)
+    {
+        if (buffer[_tcslen(buffer) - 1] == _T('\n'))
+            buffer[_tcslen(buffer) - 1] = NULL;
+        TextOut(hdc, 0, iLine * 20, buffer, _tcslen(buffer));
+        iLine++;
+    }
+    fclose(fReadFile);
+    ReleaseDC(hWnd, hdc);
+}
+
