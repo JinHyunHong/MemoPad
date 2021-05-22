@@ -161,6 +161,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case ID_NEW:
         {
             MessageBox(hWnd, L"새 파일을 열겠습니까?", L"새 파일 선택", MB_OKCANCEL);
+            memset(&vecStorageText, 0, vecStorageText.size());
             memset(&vectext, 0, vectext.size());
             iLine = 0;
             iCount = 0;
@@ -180,12 +181,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 열기 대화상자를 보여준다.
             if (GetOpenFileName(&OFN) != 0)
             {
+                // 기존 모두 초기화
+                iLine = 0;
+                iCount = 0;
+                memset(&vecStorageText, 0, vecStorageText.size());
+                memset(&vectext, 0, vectext.size());
+
                 OutFromFile(OFN.lpstrFile, hWnd);
             }
             break;
 
         case ID_SAVE:
         {
+
+
             memset(&SFN, 0, sizeof(OPENFILENAME));
             SFN.lStructSize = sizeof(OPENFILENAME);
             SFN.hwndOwner = hWnd;
@@ -243,15 +252,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     int ibufferLastIndex = 0;
 
                     // 버퍼에 문자 읽어들이기
-                    for (int i = 1; i <= vecStorageText.size(); ++i)
+                    for (int i = 1; i <= vecStorageText.size() - 1; ++i)
                     {
-                        for (int j = 0; j < vecStorageText.at(vecStorageText.size() - i).size(); ++j)
+                        for (int j = 0; j < vecStorageText.at(i).size(); ++j)
                         {
 
-                            buffer[j + ibufferLastIndex] = vecStorageText.at(vecStorageText.size() - i).at(j);
+                            buffer[j + ibufferLastIndex] = vecStorageText.at(i).at(j);
 
 
-                            if (j + 1 >= vecStorageText.at(vecStorageText.size() - i).size())
+                            if (j + 1 >= vecStorageText.at(i).size())
                             {
                                 ibufferLastIndex = j + ibufferLastIndex + 1;
                             }
@@ -272,6 +281,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case ID_CaptureSave:
         {
+            break;
         }
         case IDM_ABOUT:
             DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -292,20 +302,40 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             if (!vectext.at(vectext.size() - 1).empty())
             {
-                RECT rc = { 0, 0, 1, 1};
+                HDC hdc = GetDC(hWnd);
+                
                 vectext.at(vectext.size() - 1).pop_back();
                 iCount--;
-                InvalidateRect(hWnd, &rc, TRUE);
+
+                POINT tPos;
+                GetCaretPos(&tPos);
+
+                RECT rc = { tPos.x - 10, tPos.y, tPos.x + 10, tPos.y + fOffsetY};
+
+                // 삭제한 부분이 남지 않도록 지워준다.
+                FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
             }
 
             else
             {
                 if (iLine != 0)
                 {
+                    HDC hdc = GetDC(hWnd);
+
                     vectext.clear();
                     vectext.push_back(vecStorageText.at(vecStorageText.size() - iBackEmptyCount));
                     iBackEmptyCount++;
                     --iLine;
+
+
+
+                    POINT tPos;
+                    GetCaretPos(&tPos);
+
+                    RECT rc = { tPos.x - 10, tPos.y, tPos.x + 10, tPos.y + fOffsetY };
+
+                    // 삭제한 부분이 남지 않도록 지워준다.
+                    FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
                 }
                 
             }
@@ -315,7 +345,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         if (wParam == VK_RETURN)
         {
-            HideCaret(hWnd);
+            HDC hdc = GetDC(hWnd);
 
             iCount++;
             iLine++;
@@ -323,6 +353,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             vecStorageText.push_back(vectext.at(vectext.size() - 1));
             vectext.clear();
             vectext.resize(1);
+
+            POINT tPos;
+            GetCaretPos(&tPos);
+
+            RECT rc = { tPos.x, tPos.y, tPos.x + 5, tPos.y + fOffsetY };
+
+            // Caret 부분이 남지 않도록 지워준다.
+            FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
 
             
         }
