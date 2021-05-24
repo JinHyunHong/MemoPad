@@ -5,6 +5,7 @@
 #include "MemoPad.h"
 
 #define MAX_LOADSTRING 100
+#define MAX_LINE 20
 
 // 전역 변수:
 HINSTANCE g_hInst;                                // 현재 인스턴스입니다.
@@ -134,6 +135,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     // iCaretPos -> 움직일 시 카렛 위치
     static int iCount, iLine, iBackEmptyCount, iCaretPos;
     static bool bTextUpdate;
+    static bool bInputAble;
 
 
     OPENFILENAME OFN, SFN;
@@ -154,6 +156,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         fOffsetY = 20;
         iBackEmptyCount = 1;
         bTextUpdate = false;
+        bInputAble = true;
         CreateCaret(hWnd, NULL, 3, 15);
         break;
     case WM_COMMAND:
@@ -188,15 +191,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 열기 대화상자를 보여준다.
             if (GetOpenFileName(&OFN) != 0)
             {
+                vector<string> vecStrBuffer;
                 // 기존 모두 초기화
+                vecStorageText.clear();
+                vectext.clear();
                 iLine = 0;
                 iCount = 0;
-                memset(&vecStorageText, 0, vecStorageText.size());
-                memset(&vectext, 0, vectext.size());
 
                 TCHAR* CBuffer;
 
-                OutFromFile(OFN.lpstrFile, hWnd, true);
+                vecStrBuffer = OutFromFile(OFN.lpstrFile, hWnd, false);
+
+                iLine = vecStrBuffer.size() - 1;
+
+                for (int i = 0; i < vecStrBuffer.size(); i++)
+                {
+                    for (int j = 0; j < vecStrBuffer.at(i).size(); j++)
+                    {
+                        iCount++;
+                    }
+                }
+
+                for (int i = 0; i < vecStrBuffer.size(); i++)
+                {
+                    if (i == vecStrBuffer.size() - 1)
+                    {
+                        vectext.push_back(vecStrBuffer.at(i));
+                    }
+
+                    else
+                        vecStorageText.push_back(vecStrBuffer.at(i));
+                }
+
+                InvalidateRect(hWnd, NULL, TRUE);
+                CreateCaret(hWnd, NULL, 3, 15);
+                bTextUpdate = true;
+                UpdateWindow(hWnd);
             }
             break;
 
@@ -258,8 +288,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                     int ibufferLastIndex = 0;
 
+                    // 엔터키를 누를 시 저장되지만, 저장 되지 못한 부분인 현재 작업중인 vectext를 넣어준다.
+                    vecStorageText.push_back(vectext.at(vectext.size() - 1));
+
                     // 버퍼에 문자 읽어들이기
-                    for (int i = 1; i <= vecStorageText.size() - 1; ++i)
+                    for (int i = 0; i < vecStorageText.size(); ++i)
                     {
                         for (int j = 0; j < vecStorageText.at(i).size(); ++j)
                         {
@@ -392,30 +425,35 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             HDC hdc = GetDC(hWnd);
 
-            iCount++;
-            iLine++;
+            POINT tPos;
+            GetCaretPos(&tPos);
 
-            if (!(vecStorageText.empty() && vectext.empty()))
+            RECT rc = { tPos.x, tPos.y, tPos.x + 5, tPos.y + fOffsetY };
+
+            // Caret 부분이 남지 않도록 지워준다.
+            FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
+
+            if (!(vecStorageText.empty() && vectext.empty() && iLine > MAX_LINE))
             {
+                iLine++;
+                iCount++;
                 vecStorageText.push_back(vectext.at(vectext.size() - 1));
                 vectext.clear();
                 vectext.resize(1);
-
-                POINT tPos;
-                GetCaretPos(&tPos);
-
-                RECT rc = { tPos.x, tPos.y, tPos.x + 5, tPos.y + fOffsetY };
-
-                // Caret 부분이 남지 않도록 지워준다.
-                FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
-
             }
-
         }
-
+        
 
         break;
     }
+
+    case WM_LBUTTONDOWN:
+    {
+
+        
+    }
+    break;
+
 
     case WM_PAINT:
     {
@@ -450,10 +488,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_CHAR:
     {
-        if (iLine > 20)
+        if (iLine > MAX_LINE)
         {
             MessageBox(hWnd, L"입력 가능 문자열 초과", L"메모장", MB_OK);
-            iLine = 9;
+            iLine = MAX_LINE;
+            bInputAble = false;
+            DestroyCaret();
         }
         else
         {
@@ -463,7 +503,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             // 엔터키의 숫자는 무시한다.
-            if (!(wParam == VK_RETURN || wParam == VK_BACK))
+            if ((!(wParam == VK_RETURN || wParam == VK_BACK)) && bInputAble)
             {
                 vectext.at(vectext.size() - 1).push_back(((TCHAR)wParam));
                 iCount++;
