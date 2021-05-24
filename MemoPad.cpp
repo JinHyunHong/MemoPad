@@ -18,6 +18,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -362,6 +363,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 // 명사 파일에서 명사 목록을 불러온다.
                 vecNounBuffer = OutFromFile(cFilePath, hWnd, false);
 
+                DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_CH_SPELLING), hWnd, CH_SPELLING);
+
                 // 전체 문법 수정
                 //for (int i = 0; i < vecStorageText.size(); i++)
                 //{
@@ -374,6 +377,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 //    }
                 //}
                 // 부분 문법 수정
+
             }
         }
         break;
@@ -450,7 +454,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_LBUTTONDOWN:
     {
 
-        
     }
     break;
 
@@ -541,6 +544,31 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+    switch (iMsg)
+    {
+    case WM_INITDIALOG:
+        return (INT_PTR)TRUE;
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDC_EDITSTR:
+            break;
+        case ID_CHANGE:
+            break;
+        case ID_CANCEL:
+            EndDialog(hDlg, LOWORD(wParam));
+            break;
+        }
+        break;
+    case WM_CLOSE:
+        EndDialog(hDlg, LOWORD(wParam));
         break;
     }
     return (INT_PTR)FALSE;
