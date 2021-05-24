@@ -7,17 +7,17 @@
 #define MAX_LOADSTRING 100
 
 // 전역 변수:
-HINSTANCE hInst;                                // 현재 인스턴스입니다.
+HINSTANCE g_hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
-RECT WindowRC = { 0, 0, 800, 500 };
+RECT g_WindowRC = { 0, 0, 800, 500 };
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-void OutFromFile(TCHAR filename[], HWND hWnd);
+vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -76,11 +76,12 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbWndExtra = 0;
     wcex.hInstance = hInstance;
     wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
-    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hCursor = LoadCursor(nullptr, IDC_IBEAM);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_MEMOPAD);
     wcex.lpszClassName = szWindowClass;
     wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_ICON1));
+
 
     return RegisterClassExW(&wcex);
 }
@@ -97,10 +98,11 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
+    g_hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
     HWND hWnd = CreateWindowW(szWindowClass, L"MemoPad", WS_OVERLAPPEDWINDOW,
-        50, 50, WindowRC.right - WindowRC.left, WindowRC.bottom - WindowRC.top, nullptr, nullptr, hInstance, nullptr);
+        50, 50, g_WindowRC.right - g_WindowRC.left, 
+        g_WindowRC.bottom - g_WindowRC.top, nullptr, nullptr, hInstance, nullptr);
 
     if (!hWnd)
     {
@@ -126,11 +128,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static vector<string> vectext(1);
-    static vector<string> vecStorageText(1);
+    static vector<string> vecStorageText(0);
     static float fOffsetX;
     static float fOffsetY;
-    static int iCount, iLine, iBackEmptyCount;
-    static POINT tCaretPos;
+    // iCaretPos -> 움직일 시 카렛 위치
+    static int iCount, iLine, iBackEmptyCount, iCaretPos;
+    static bool bTextUpdate;
 
 
     OPENFILENAME OFN, SFN;
@@ -150,6 +153,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         fOffsetX = 5;
         fOffsetY = 20;
         iBackEmptyCount = 1;
+        bTextUpdate = false;
         CreateCaret(hWnd, NULL, 3, 15);
         break;
     case WM_COMMAND:
@@ -161,11 +165,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case ID_NEW:
         {
             MessageBox(hWnd, L"새 파일을 열겠습니까?", L"새 파일 선택", MB_OKCANCEL);
-            memset(&vecStorageText, 0, vecStorageText.size());
-            memset(&vectext, 0, vectext.size());
+            vecStorageText.clear();
+            vectext.clear();
+            vecStorageText.resize(1);
+            vectext.resize(1);
             iLine = 0;
-            iCount = 0;
+            iCount = 0; 
             InvalidateRect(hWnd, NULL, TRUE);
+            SetCaretPos(fOffsetX, 0);
             break;
         }
         case ID_OPEN:
@@ -187,14 +194,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 memset(&vecStorageText, 0, vecStorageText.size());
                 memset(&vectext, 0, vectext.size());
 
-                OutFromFile(OFN.lpstrFile, hWnd);
+                TCHAR* CBuffer;
+
+                OutFromFile(OFN.lpstrFile, hWnd, true);
             }
             break;
 
         case ID_SAVE:
         {
-
-
             memset(&SFN, 0, sizeof(OPENFILENAME));
             SFN.lStructSize = sizeof(OPENFILENAME);
             SFN.hwndOwner = hWnd;
@@ -278,13 +285,68 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             break;
         }
-
-        case ID_CaptureSave:
+        
+        // 문법을 바꿔준다.
+        case ID_CH_SPELLING:
         {
-            break;
+            TCHAR cFilePath[100];
+            memset(cFilePath, 0, sizeof(cFilePath));
+
+            if (GetCurrentDirectory(sizeof(cFilePath), cFilePath) > 0)
+            {
+                vector<string> vecVerbBuffer;
+                vector<string> vecNounBuffer;
+
+                cFilePath[lstrlen(cFilePath)] = '\\';
+                cFilePath[lstrlen(cFilePath)] = 'v';
+                cFilePath[lstrlen(cFilePath)] = 'e';
+                cFilePath[lstrlen(cFilePath)] = 'r';
+                cFilePath[lstrlen(cFilePath)] = 'b';
+                cFilePath[lstrlen(cFilePath)] = '.';
+                cFilePath[lstrlen(cFilePath)] = 't';
+                cFilePath[lstrlen(cFilePath)] = 'x';
+                cFilePath[lstrlen(cFilePath)] = 't';
+
+
+                // 동사 파일에서 동사 목록을 불러온다.
+                vecVerbBuffer = OutFromFile(cFilePath, hWnd, false);
+
+                // cFilePath verb.txt를 지워준다.
+                for (int i = 1; i < 9; i++)
+                {
+                    cFilePath[lstrlen(cFilePath) - 1] = 0;
+                }
+
+                cFilePath[lstrlen(cFilePath)] = 'n';
+                cFilePath[lstrlen(cFilePath)] = 'o';
+                cFilePath[lstrlen(cFilePath)] = 'u';
+                cFilePath[lstrlen(cFilePath)] = 'n';
+                cFilePath[lstrlen(cFilePath)] = '.';
+                cFilePath[lstrlen(cFilePath)] = 't';
+                cFilePath[lstrlen(cFilePath)] = 'x';
+                cFilePath[lstrlen(cFilePath)] = 't';
+
+                // 명사 파일에서 명사 목록을 불러온다.
+                vecNounBuffer = OutFromFile(cFilePath, hWnd, false);
+
+                // 전체 문법 수정
+                //for (int i = 0; i < vecStorageText.size(); i++)
+                //{
+                //    for (int k = 0; k < vecStorageText.at(i).size(); k++)
+                //    {
+                //        if (vecStorageText.at(i).at(k) == vecVerbBuffer.at(i).at(0))
+                //        {
+                //
+                //        }
+                //    }
+                //}
+                // 부분 문법 수정
+            }
         }
+        break;
+
         case IDM_ABOUT:
-            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
             break;
         case IDM_EXIT:
             DestroyWindow(hWnd);
@@ -295,47 +357,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     break;
 
-
     case WM_KEYDOWN:
     {
         if (wParam == VK_BACK)
         {
             if (!vectext.at(vectext.size() - 1).empty())
             {
-                HDC hdc = GetDC(hWnd);
-                
                 vectext.at(vectext.size() - 1).pop_back();
                 iCount--;
 
-                POINT tPos;
-                GetCaretPos(&tPos);
+                InvalidateRect(hWnd, NULL, TRUE);
 
-                RECT rc = { tPos.x - 10, tPos.y, tPos.x + 10, tPos.y + fOffsetY};
-
-                // 삭제한 부분이 남지 않도록 지워준다.
-                FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
+                bTextUpdate = true;
             }
 
             else
             {
                 if (iLine != 0)
                 {
-                    HDC hdc = GetDC(hWnd);
-
                     vectext.clear();
-                    vectext.push_back(vecStorageText.at(vecStorageText.size() - iBackEmptyCount));
-                    iBackEmptyCount++;
+                    vectext.push_back(vecStorageText.at(vecStorageText.size() - 1));
+                    vecStorageText.pop_back();
                     --iLine;
-
-
-
-                    POINT tPos;
-                    GetCaretPos(&tPos);
-
-                    RECT rc = { tPos.x - 10, tPos.y, tPos.x + 10, tPos.y + fOffsetY };
-
-                    // 삭제한 부분이 남지 않도록 지워준다.
-                    FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
+                    InvalidateRect(hWnd, NULL, TRUE);
+                    bTextUpdate = true;
                 }
                 
             }
@@ -350,20 +395,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             iCount++;
             iLine++;
 
-            vecStorageText.push_back(vectext.at(vectext.size() - 1));
-            vectext.clear();
-            vectext.resize(1);
+            if (!(vecStorageText.empty() && vectext.empty()))
+            {
+                vecStorageText.push_back(vectext.at(vectext.size() - 1));
+                vectext.clear();
+                vectext.resize(1);
 
-            POINT tPos;
-            GetCaretPos(&tPos);
+                POINT tPos;
+                GetCaretPos(&tPos);
 
-            RECT rc = { tPos.x, tPos.y, tPos.x + 5, tPos.y + fOffsetY };
+                RECT rc = { tPos.x, tPos.y, tPos.x + 5, tPos.y + fOffsetY };
 
-            // Caret 부분이 남지 않도록 지워준다.
-            FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
+                // Caret 부분이 남지 않도록 지워준다.
+                FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
 
-            
+            }
+
         }
+
+
         break;
     }
 
@@ -373,16 +423,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
 
-        GetTextExtentPointA(hdc, vectext.at(vectext.size() - 1).c_str(), vectext.at(vectext.size() - 1).size(), &size);
 
         
         for (int count = 0; count < vectext.size(); count++)
         {
+            if (bTextUpdate)
+            {
+                for (int i = 0; i < vecStorageText.size(); i++)
+                {
+                    GetTextExtentPointA(hdc, vecStorageText.at(i).c_str(), vecStorageText.at(i).size(), &size);
+                    SetCaretPos(size.cx + fOffsetX, iLine* fOffsetY);
+                    TextOutA(hdc, fOffsetX, fOffsetY* i, vecStorageText.at(i).c_str(), vecStorageText.at(i).length());
+                }
+                bTextUpdate = false;
+            }
+            GetTextExtentPointA(hdc, vectext.at(vectext.size() - 1).c_str(), vectext.at(vectext.size() - 1).size(), &size);
+            SetCaretPos(size.cx + fOffsetX, iLine* fOffsetY);
             TextOutA(hdc, fOffsetX, fOffsetY * iLine, vectext.at(count).c_str(), vectext.at(count).length());
         }
 
-        SetCaretPos(size.cx + fOffsetX, iLine * fOffsetY);
-        tCaretPos = { size.cx + (LONG)fOffsetX , iLine * (LONG)fOffsetY };
+        
         
         EndPaint(hWnd, &ps);
     }
@@ -447,12 +507,13 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 // 파일을 읽어온다.
-void OutFromFile(TCHAR filename[], HWND hWnd)
+vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout)
 {
     FILE* fReadFile;
     HDC hdc;
     int iLine;
     TCHAR buffer[500];
+    vector<string> vecbufferStorage;
     iLine = 0;
     hdc = GetDC(hWnd);
 #ifdef _UNICODE
@@ -464,10 +525,23 @@ void OutFromFile(TCHAR filename[], HWND hWnd)
     {
         if (buffer[_tcslen(buffer) - 1] == _T('\n'))
             buffer[_tcslen(buffer) - 1] = NULL;
-        TextOut(hdc, 0, iLine * 20, buffer, _tcslen(buffer));
-        iLine++;
+        if (bTextout)
+        {
+            TextOut(hdc, 0, iLine * 20, buffer, _tcslen(buffer));
+            iLine++;
+        }
+        char cTemp[500];
+        WideCharToMultiByte(CP_ACP, 0, buffer, 500, cTemp, 500, NULL, NULL);
+        vecbufferStorage.resize(vecbufferStorage.size() + 1);
+        vecbufferStorage.at(vecbufferStorage.size() - 1).append(cTemp);
+        
     }
+
+
     fclose(fReadFile);
     ReleaseDC(hWnd, hdc);
+
+    return vecbufferStorage;
 }
+
 
