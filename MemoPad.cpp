@@ -196,6 +196,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             break;
 
+        case ID_FONT:
+
+            break;
+
         case ID_CaptureSave:
         {
         }
