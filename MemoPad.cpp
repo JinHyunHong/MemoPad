@@ -174,7 +174,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             vecStorageText.resize(1);
             vectext.resize(1);
             iLine = 0;
-            iCount = 0; 
+            iCount = 0;
             InvalidateRect(hWnd, NULL, TRUE);
             SetCaretPos(fOffsetX, 0);
             break;
@@ -277,7 +277,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 FileName[iLen + 1] = 't';
                 FileName[iLen + 2] = 'x';
                 FileName[iLen + 3] = 't';
-                
+
 
                 FILE* fSaveFile;
                 fopen_s(&fSaveFile, FileName, "wt");
@@ -319,8 +319,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             break;
         }
-        
-        // 문법을 바꿔준다.
+
+        case ID_FONT:
+            break;
+            // 문법을 바꿔준다.
         case ID_CH_SPELLING:
         {
             TCHAR cFilePath[100];
@@ -391,8 +393,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
         }
-    }
-    break;
+        }
+        break;
 
     case WM_KEYDOWN:
     {
@@ -419,10 +421,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     InvalidateRect(hWnd, NULL, TRUE);
                     bTextUpdate = true;
                 }
-                
+
             }
-            
-            
+
+
         }
 
         if (wParam == VK_RETURN)
@@ -446,7 +448,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 vectext.resize(1);
             }
         }
-        
+
 
         break;
     }
@@ -465,7 +467,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         HDC hdc = BeginPaint(hWnd, &ps);
 
 
-        
+
         for (int count = 0; count < vectext.size(); count++)
         {
             if (bTextUpdate)
@@ -473,18 +475,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 for (int i = 0; i < vecStorageText.size(); i++)
                 {
                     GetTextExtentPointA(hdc, vecStorageText.at(i).c_str(), vecStorageText.at(i).size(), &size);
-                    SetCaretPos(size.cx + fOffsetX, iLine* fOffsetY);
-                    TextOutA(hdc, fOffsetX, fOffsetY* i, vecStorageText.at(i).c_str(), vecStorageText.at(i).length());
+                    SetCaretPos(size.cx + fOffsetX, iLine * fOffsetY);
+                    TextOutA(hdc, fOffsetX, fOffsetY * i, vecStorageText.at(i).c_str(), vecStorageText.at(i).length());
                 }
                 bTextUpdate = false;
             }
             GetTextExtentPointA(hdc, vectext.at(vectext.size() - 1).c_str(), vectext.at(vectext.size() - 1).size(), &size);
-            SetCaretPos(size.cx + fOffsetX, iLine* fOffsetY);
+            SetCaretPos(size.cx + fOffsetX, iLine * fOffsetY);
             TextOutA(hdc, fOffsetX, fOffsetY * iLine, vectext.at(count).c_str(), vectext.at(count).length());
         }
 
-        
-        
+
+
         EndPaint(hWnd, &ps);
     }
     break;
@@ -511,7 +513,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 vectext.at(vectext.size() - 1).push_back(((TCHAR)wParam));
                 iCount++;
             }
-            
+
         }
         InvalidateRect(hWnd, NULL, FALSE);
         break;
@@ -527,6 +529,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     return 0;
+    
 }
 
 // 정보 대화 상자의 메시지 처리기입니다.
