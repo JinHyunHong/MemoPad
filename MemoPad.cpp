@@ -140,12 +140,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
     OPENFILENAME OFN, SFN;
+    
+
     TCHAR lpstrFile[100] = _T("");
     static char filepath[100], filename[100];
 
     static SIZE size;
     // 불러오기 필터
     TCHAR filter[] = _T("텍스트 문서(*.txt)\0*.txt\0모든 파일 \0*.*\0");
+
+
+    // 폰트 관련 변수 선언
+    CHOOSEFONT FONT;
+    static COLORREF fColor;
+    HFONT hFont, OldFont = 0;
+    static LOGFONT LogFont;
+
 
     switch (message)
     {
@@ -180,6 +190,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         }
         case ID_OPEN:
+        {
             memset(&OFN, 0, sizeof(OPENFILENAME));
             OFN.lStructSize = sizeof(OPENFILENAME);
             OFN.hwndOwner = hWnd;
@@ -229,6 +240,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 bTextUpdate = true;
                 UpdateWindow(hWnd);
             }
+        }
             break;
 
         case ID_SAVE:
@@ -321,6 +333,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         case ID_FONT:
+            memset(&FONT, 0, sizeof(CHOOSEFONT));
+            FONT.lStructSize = sizeof(CHOOSEFONT);
+            FONT.hwndOwner = hWnd;
+            FONT.lpLogFont = &LogFont;
+            FONT.Flags = CF_EFFECTS | CF_SCREENFONTS;
+            if (ChooseFont(&FONT) != 0)
+            {
+                HDC hdc = GetDC(hWnd);
+                fColor = FONT.rgbColors;
+                InvalidateRgn(hWnd, NULL, TRUE);
+                bTextUpdate = true;
+            }
+
+            
             break;
             // 문법을 바꿔준다.
         case ID_CH_SPELLING:
@@ -466,7 +492,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
 
-
+        // 폰트 관련 함수
+        hFont = CreateFontIndirect(&LogFont);
+        OldFont = (HFONT)SelectObject(hdc, hFont);
+        SetTextColor(hdc, fColor);
 
         for (int count = 0; count < vectext.size(); count++)
         {
@@ -485,6 +514,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             TextOutA(hdc, fOffsetX, fOffsetY * iLine, vectext.at(count).c_str(), vectext.at(count).length());
         }
 
+
+        SelectObject(hdc, OldFont);
+        DeleteObject(hFont);
 
 
         EndPaint(hWnd, &ps);
