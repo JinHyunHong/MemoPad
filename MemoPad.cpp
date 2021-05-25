@@ -12,8 +12,9 @@ HINSTANCE g_hInst;                                // 현재 인스턴스입니�
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 RECT g_WindowRC = { 0, 0, 800, 500 };
-static float fOffsetX;
-static float fOffsetY;
+static float g_fOffsetX;
+static float g_fOffsetY;
+WCHAR g_CH_SPELLING_Temp[10];
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -165,8 +166,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         iLine = 0;
         iCount = 0;
-        fOffsetX = 5;
-        fOffsetY = 20;
+        g_fOffsetX = 5;
+        g_fOffsetY = 20;
         iBackEmptyCount = 1;
         bTextUpdate = false;
         bInputAble = true;
@@ -188,7 +189,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             iLine = 0;
             iCount = 0;
             InvalidateRect(hWnd, NULL, TRUE);
-            SetCaretPos(fOffsetX, 0);
+            SetCaretPos(g_fOffsetX, 0);
             break;
         }
         case ID_OPEN:
@@ -408,6 +409,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 //}
                 // 부분 문법 수정
 
+                // 유니코드를 변환
+                wstring sText_Temp(g_CH_SPELLING_Temp);
+                string sTextWideTemp(sText_Temp.begin(), sText_Temp.end());
+
+                for (int i = 0; i < vecStorageText.size(); i++)
+                {
+
+                }
+
             }
         }
         break;
@@ -469,7 +479,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             POINT tPos;
             GetCaretPos(&tPos);
 
-            RECT rc = { tPos.x, tPos.y, tPos.x + 5, tPos.y + fOffsetY };
+            RECT rc = { tPos.x, tPos.y, tPos.x + 5, tPos.y + g_fOffsetY };
 
             // Caret 부분이 남지 않도록 지워준다.
             FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
@@ -513,14 +523,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 for (int i = 0; i < vecStorageText.size(); i++)
                 {
                     GetTextExtentPointA(hdc, vecStorageText.at(i).c_str(), vecStorageText.at(i).size(), &size);
-                    SetCaretPos(size.cx + fOffsetX, iLine * fOffsetY);
-                    TextOutA(hdc, fOffsetX, fOffsetY * i, vecStorageText.at(i).c_str(), vecStorageText.at(i).length());
+                    SetCaretPos(size.cx + g_fOffsetX, iLine * g_fOffsetY);
+                    TextOutA(hdc, g_fOffsetX, g_fOffsetY * i, vecStorageText.at(i).c_str(), vecStorageText.at(i).length());
                 }
                 bTextUpdate = false;
             }
             GetTextExtentPointA(hdc, vectext.at(vectext.size() - 1).c_str(), vectext.at(vectext.size() - 1).size(), &size);
-            SetCaretPos(size.cx + fOffsetX, iLine * fOffsetY);
-            TextOutA(hdc, fOffsetX, fOffsetY * iLine, vectext.at(count).c_str(), vectext.at(count).length());
+            SetCaretPos(size.cx + g_fOffsetX, iLine * g_fOffsetY);
+            TextOutA(hdc, g_fOffsetX, g_fOffsetY * iLine, vectext.at(count).c_str(), vectext.at(count).length());
         }
 
 
@@ -602,9 +612,9 @@ INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
-        case IDC_EDITSTR:
-            break;
         case ID_CHANGE:
+            GetDlgItemText(hDlg, IDC_EDIT1, g_CH_SPELLING_Temp, 10);
+            EndDialog(hDlg, LOWORD(wParam));
             break;
         case ID_CANCEL:
             EndDialog(hDlg, LOWORD(wParam));
@@ -630,8 +640,8 @@ INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
         switch (LOWORD(wParam))
         {
         case ID_OK:
-            GetDlgItemText(hDlg, IDC_EDIT1, buffer, 100);
-            fOffsetY = _wtoi(buffer);
+            GetDlgItemText(hDlg, IDC_EDIT1, buffer, 10);
+            g_fOffsetY = _wtoi(buffer);
             EndDialog(hDlg, LOWORD(wParam));
         case ID_CANCEL:
             EndDialog(hDlg, LOWORD(wParam));
