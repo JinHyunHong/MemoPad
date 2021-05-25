@@ -351,7 +351,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             
             break;
-            // 문법을 바꿔준다.
+            // 단어를 바꿔준다.
         case ID_CH_SPELLING:
         {
             TCHAR cFilePath[100];
@@ -359,29 +359,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             if (GetCurrentDirectory(sizeof(cFilePath), cFilePath) > 0)
             {
-                vector<string> vecVerbBuffer;
                 vector<string> vecNounBuffer;
 
                 cFilePath[lstrlen(cFilePath)] = '\\';
-                cFilePath[lstrlen(cFilePath)] = 'v';
-                cFilePath[lstrlen(cFilePath)] = 'e';
-                cFilePath[lstrlen(cFilePath)] = 'r';
-                cFilePath[lstrlen(cFilePath)] = 'b';
-                cFilePath[lstrlen(cFilePath)] = '.';
-                cFilePath[lstrlen(cFilePath)] = 't';
-                cFilePath[lstrlen(cFilePath)] = 'x';
-                cFilePath[lstrlen(cFilePath)] = 't';
-
-
-                // 동사 파일에서 동사 목록을 불러온다.
-                vecVerbBuffer = OutFromFile(cFilePath, hWnd, false);
-
-                // cFilePath verb.txt를 지워준다.
-                for (int i = 1; i < 9; i++)
-                {
-                    cFilePath[lstrlen(cFilePath) - 1] = 0;
-                }
-
                 cFilePath[lstrlen(cFilePath)] = 'n';
                 cFilePath[lstrlen(cFilePath)] = 'o';
                 cFilePath[lstrlen(cFilePath)] = 'u';
@@ -396,28 +376,122 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_CH_SPELLING), hWnd, CH_SPELLING);
 
-                // 전체 문법 수정
-                //for (int i = 0; i < vecStorageText.size(); i++)
-                //{
-                //    for (int k = 0; k < vecStorageText.at(i).size(); k++)
-                //    {
-                //        if (vecStorageText.at(i).at(k) == vecVerbBuffer.at(i).at(0))
-                //        {
-                //
-                //        }
-                //    }
-                //}
-                // 부분 문법 수정
-
                 // 유니코드를 변환
                 wstring sText_Temp(g_CH_SPELLING_Temp);
                 string sTextWideTemp(sText_Temp.begin(), sText_Temp.end());
 
-                for (int i = 0; i < vecStorageText.size(); i++)
+                // 부분 변환 부분 찾기
+                bool bFind;
+                POINT StorReplacePos;
+                POINT TextReplacePos;
+                string sNoun;
+
+                // 변수 초기화
+                bFind = false;
+                StorReplacePos.x = 0;
+                StorReplacePos.y = 0;
+                TextReplacePos.x = 0;
+                TextReplacePos.y = 0;
+
+                int iSameCount = 0;
+
+                if (sTextWideTemp.size() > 2)
                 {
+                    // 가장 비슷한 명사를 검색한다.
+                    for (int i = 0; i < vecNounBuffer.size(); i++)
+                    {
+                        for (int j = 0; j < vecNounBuffer.at(i).size(); j++)
+                        {
+                            if (vecNounBuffer.at(i).at(j) == sTextWideTemp.at(iSameCount))
+                            {
+                                iSameCount++;
 
+                                // 절반 + 1 만큼 같다면 바꿔준다.
+                                if (iSameCount == sTextWideTemp.size() / 2 + 1)
+                                {
+                                    sNoun = vecNounBuffer.at(i);
+                                    break;
+                                }
+                            }
+
+                            else
+                                iSameCount = 0;
+                        }
+                    }
+
+                    iSameCount = 0;
+
+                    // 버퍼에 입력한 문자열이 있는지 검사한다.
+                    for (int i = 0; i < vecStorageText.size(); i++)
+                    {
+                        for (int j = 0; j < vecStorageText.at(i).size(); j++)
+                        {
+                            if (vecStorageText.at(i).at(j) == sTextWideTemp.at(iSameCount))
+                            {
+                                iSameCount++;
+
+                                if (iSameCount == sTextWideTemp.size() - 1)
+                                {
+                                    StorReplacePos.x = j - sTextWideTemp.size() + 2;
+                                    StorReplacePos.y = i;
+                                    bFind = true;
+                                    break;
+                                }
+                            }
+
+                            else
+                                iSameCount = 0;
+                        }
+                    }
+                    if (bFind)
+                    {
+                        vecStorageText.at(StorReplacePos.y).erase(StorReplacePos.x, sTextWideTemp.size());
+                        vecStorageText.at(StorReplacePos.y).insert(StorReplacePos.x, sNoun);
+                        InvalidateRect(hWnd, NULL, TRUE);
+                        bTextUpdate = true;
+                    }
+
+                    // 기존 버퍼에 없으므로 재탐색을 위해 다시 초기화
+                    else
+                    {
+                        iSameCount = 0;
+
+                        // 실시간 입력 버퍼에 해당 입력한 문자열이 있는지 검사한다.
+                        for (int i = 0; i < vectext.size(); i++)
+                        {
+                            for (int j = 0; j < vectext.at(i).size(); j++)
+                            {
+                                if (vectext.at(i).at(j) == sTextWideTemp.at(iSameCount))
+                                {
+                                    iSameCount++;
+
+                                    if (iSameCount == sTextWideTemp.size() - 1)
+                                    {
+                                        TextReplacePos.x = j - sTextWideTemp.size() + 2;
+                                        TextReplacePos.y = i;
+                                        bFind = true;
+                                        break;
+                                    }
+                                }
+
+                                else
+                                    iSameCount = 0;
+                            }
+                        }
+
+                        if (bFind)
+                        {
+                            vectext.at(TextReplacePos.y).erase(TextReplacePos.x, sTextWideTemp.size());
+                            vectext.at(TextReplacePos.y).insert(TextReplacePos.x, sNoun);
+                            InvalidateRect(hWnd, NULL, TRUE);
+                        }
+
+                        else
+                            MessageBox(hWnd, L"해당 단어가 존재하지 않습니다.", L"찾을 수 없음", MB_OK);
+
+                    }
+               
                 }
-
             }
         }
         break;
