@@ -12,8 +12,9 @@ HINSTANCE g_hInst;                                // 현재 인스턴스입니�
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 RECT g_WindowRC = { 0, 0, 800, 500 };
-static float fOffsetX;
-static float fOffsetY;
+static float g_fOffsetX;
+static float g_fOffsetY;
+WCHAR g_CH_SPELLING_Temp[10];
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -165,8 +166,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         iLine = 0;
         iCount = 0;
-        fOffsetX = 5;
-        fOffsetY = 20;
+        g_fOffsetX = 5;
+        g_fOffsetY = 20;
         iBackEmptyCount = 1;
         bTextUpdate = false;
         bInputAble = true;
@@ -188,7 +189,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             iLine = 0;
             iCount = 0;
             InvalidateRect(hWnd, NULL, TRUE);
-            SetCaretPos(fOffsetX, 0);
+            SetCaretPos(g_fOffsetX, 0);
             break;
         }
         case ID_OPEN:
@@ -350,7 +351,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             
             break;
-            // 문법을 바꿔준다.
+            // 단어를 바꿔준다.
         case ID_CH_SPELLING:
         {
             TCHAR cFilePath[100];
@@ -358,29 +359,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             if (GetCurrentDirectory(sizeof(cFilePath), cFilePath) > 0)
             {
-                vector<string> vecVerbBuffer;
                 vector<string> vecNounBuffer;
 
                 cFilePath[lstrlen(cFilePath)] = '\\';
-                cFilePath[lstrlen(cFilePath)] = 'v';
-                cFilePath[lstrlen(cFilePath)] = 'e';
-                cFilePath[lstrlen(cFilePath)] = 'r';
-                cFilePath[lstrlen(cFilePath)] = 'b';
-                cFilePath[lstrlen(cFilePath)] = '.';
-                cFilePath[lstrlen(cFilePath)] = 't';
-                cFilePath[lstrlen(cFilePath)] = 'x';
-                cFilePath[lstrlen(cFilePath)] = 't';
-
-
-                // 동사 파일에서 동사 목록을 불러온다.
-                vecVerbBuffer = OutFromFile(cFilePath, hWnd, false);
-
-                // cFilePath verb.txt를 지워준다.
-                for (int i = 1; i < 9; i++)
-                {
-                    cFilePath[lstrlen(cFilePath) - 1] = 0;
-                }
-
                 cFilePath[lstrlen(cFilePath)] = 'n';
                 cFilePath[lstrlen(cFilePath)] = 'o';
                 cFilePath[lstrlen(cFilePath)] = 'u';
@@ -395,19 +376,122 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_CH_SPELLING), hWnd, CH_SPELLING);
 
-                // 전체 문법 수정
-                //for (int i = 0; i < vecStorageText.size(); i++)
-                //{
-                //    for (int k = 0; k < vecStorageText.at(i).size(); k++)
-                //    {
-                //        if (vecStorageText.at(i).at(k) == vecVerbBuffer.at(i).at(0))
-                //        {
-                //
-                //        }
-                //    }
-                //}
-                // 부분 문법 수정
+                // 유니코드를 변환
+                wstring sText_Temp(g_CH_SPELLING_Temp);
+                string sTextWideTemp(sText_Temp.begin(), sText_Temp.end());
 
+                // 부분 변환 부분 찾기
+                bool bFind;
+                POINT StorReplacePos;
+                POINT TextReplacePos;
+                string sNoun;
+
+                // 변수 초기화
+                bFind = false;
+                StorReplacePos.x = 0;
+                StorReplacePos.y = 0;
+                TextReplacePos.x = 0;
+                TextReplacePos.y = 0;
+
+                int iSameCount = 0;
+
+                if (sTextWideTemp.size() > 2)
+                {
+                    // 가장 비슷한 명사를 검색한다.
+                    for (int i = 0; i < vecNounBuffer.size(); i++)
+                    {
+                        for (int j = 0; j < vecNounBuffer.at(i).size(); j++)
+                        {
+                            if (vecNounBuffer.at(i).at(j) == sTextWideTemp.at(iSameCount))
+                            {
+                                iSameCount++;
+
+                                // 절반 + 1 만큼 같다면 바꿔준다.
+                                if (iSameCount == sTextWideTemp.size() / 2 + 1)
+                                {
+                                    sNoun = vecNounBuffer.at(i);
+                                    break;
+                                }
+                            }
+
+                            else
+                                iSameCount = 0;
+                        }
+                    }
+
+                    iSameCount = 0;
+
+                    // 버퍼에 입력한 문자열이 있는지 검사한다.
+                    for (int i = 0; i < vecStorageText.size(); i++)
+                    {
+                        for (int j = 0; j < vecStorageText.at(i).size(); j++)
+                        {
+                            if (vecStorageText.at(i).at(j) == sTextWideTemp.at(iSameCount))
+                            {
+                                iSameCount++;
+
+                                if (iSameCount == sTextWideTemp.size() - 1)
+                                {
+                                    StorReplacePos.x = j - sTextWideTemp.size() + 2;
+                                    StorReplacePos.y = i;
+                                    bFind = true;
+                                    break;
+                                }
+                            }
+
+                            else
+                                iSameCount = 0;
+                        }
+                    }
+                    if (bFind)
+                    {
+                        vecStorageText.at(StorReplacePos.y).erase(StorReplacePos.x, sTextWideTemp.size());
+                        vecStorageText.at(StorReplacePos.y).insert(StorReplacePos.x, sNoun);
+                        InvalidateRect(hWnd, NULL, TRUE);
+                        bTextUpdate = true;
+                    }
+
+                    // 기존 버퍼에 없으므로 재탐색을 위해 다시 초기화
+                    else
+                    {
+                        iSameCount = 0;
+
+                        // 실시간 입력 버퍼에 해당 입력한 문자열이 있는지 검사한다.
+                        for (int i = 0; i < vectext.size(); i++)
+                        {
+                            for (int j = 0; j < vectext.at(i).size(); j++)
+                            {
+                                if (vectext.at(i).at(j) == sTextWideTemp.at(iSameCount))
+                                {
+                                    iSameCount++;
+
+                                    if (iSameCount == sTextWideTemp.size() - 1)
+                                    {
+                                        TextReplacePos.x = j - sTextWideTemp.size() + 2;
+                                        TextReplacePos.y = i;
+                                        bFind = true;
+                                        break;
+                                    }
+                                }
+
+                                else
+                                    iSameCount = 0;
+                            }
+                        }
+
+                        if (bFind)
+                        {
+                            vectext.at(TextReplacePos.y).erase(TextReplacePos.x, sTextWideTemp.size());
+                            vectext.at(TextReplacePos.y).insert(TextReplacePos.x, sNoun);
+                            InvalidateRect(hWnd, NULL, TRUE);
+                        }
+
+                        else
+                            MessageBox(hWnd, L"해당 단어가 존재하지 않습니다.", L"찾을 수 없음", MB_OK);
+
+                    }
+               
+                }
             }
         }
         break;
@@ -469,7 +553,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             POINT tPos;
             GetCaretPos(&tPos);
 
-            RECT rc = { tPos.x, tPos.y, tPos.x + 5, tPos.y + fOffsetY };
+            RECT rc = { tPos.x, tPos.y, tPos.x + 5, tPos.y + g_fOffsetY };
 
             // Caret 부분이 남지 않도록 지워준다.
             FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
@@ -513,14 +597,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 for (int i = 0; i < vecStorageText.size(); i++)
                 {
                     GetTextExtentPointA(hdc, vecStorageText.at(i).c_str(), vecStorageText.at(i).size(), &size);
-                    SetCaretPos(size.cx + fOffsetX, iLine * fOffsetY);
-                    TextOutA(hdc, fOffsetX, fOffsetY * i, vecStorageText.at(i).c_str(), vecStorageText.at(i).length());
+                    SetCaretPos(size.cx + g_fOffsetX, iLine * g_fOffsetY);
+                    TextOutA(hdc, g_fOffsetX, g_fOffsetY * i, vecStorageText.at(i).c_str(), vecStorageText.at(i).length());
                 }
                 bTextUpdate = false;
             }
             GetTextExtentPointA(hdc, vectext.at(vectext.size() - 1).c_str(), vectext.at(vectext.size() - 1).size(), &size);
-            SetCaretPos(size.cx + fOffsetX, iLine * fOffsetY);
-            TextOutA(hdc, fOffsetX, fOffsetY * iLine, vectext.at(count).c_str(), vectext.at(count).length());
+            SetCaretPos(size.cx + g_fOffsetX, iLine * g_fOffsetY);
+            TextOutA(hdc, g_fOffsetX, g_fOffsetY * iLine, vectext.at(count).c_str(), vectext.at(count).length());
         }
 
 
@@ -602,9 +686,9 @@ INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
-        case IDC_EDITSTR:
-            break;
         case ID_CHANGE:
+            GetDlgItemText(hDlg, IDC_EDIT1, g_CH_SPELLING_Temp, 10);
+            EndDialog(hDlg, LOWORD(wParam));
             break;
         case ID_CANCEL:
             EndDialog(hDlg, LOWORD(wParam));
@@ -630,8 +714,8 @@ INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
         switch (LOWORD(wParam))
         {
         case ID_OK:
-            GetDlgItemText(hDlg, IDC_EDIT1, buffer, 100);
-            fOffsetY = _wtoi(buffer);
+            GetDlgItemText(hDlg, IDC_EDIT1, buffer, 10);
+            g_fOffsetY = _wtoi(buffer);
             EndDialog(hDlg, LOWORD(wParam));
         case ID_CANCEL:
             EndDialog(hDlg, LOWORD(wParam));
