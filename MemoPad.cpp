@@ -12,6 +12,8 @@ HINSTANCE g_hInst;                                // 현재 인스턴스입니�
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 RECT g_WindowRC = { 0, 0, 800, 500 };
+static float fOffsetX;
+static float fOffsetY;
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -19,6 +21,7 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -131,8 +134,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static vector<string> vectext(1);
     static vector<string> vecStorageText(0);
-    static float fOffsetX;
-    static float fOffsetY;
+
     // iCaretPos -> 움직일 시 카렛 위치
     static int iCount, iLine, iBackEmptyCount, iCaretPos;
     static bool bTextUpdate;
@@ -410,6 +412,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+
+        case ID_LineSpacing:
+            DialogBox(g_hInst, MAKEINTRESOURCE(IDD_LINESPACING), hWnd, LINESPACING);
+            InvalidateRect(hWnd, NULL, TRUE);
+            bTextUpdate = true;
+            break;
+
         case IDM_ABOUT:
             DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
             break;
@@ -608,6 +617,35 @@ INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
+
+INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+    long long iSize = 0;
+    TCHAR buffer[10];
+    switch (iMsg)
+    {
+    case WM_INITDIALOG:
+        return (INT_PTR)TRUE;
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case ID_OK:
+            GetDlgItemText(hDlg, IDC_EDIT1, buffer, 100);
+            fOffsetY = _wtoi(buffer);
+            EndDialog(hDlg, LOWORD(wParam));
+        case ID_CANCEL:
+            EndDialog(hDlg, LOWORD(wParam));
+            break;
+        }
+        break;
+    case WM_CLOSE:
+        EndDialog(hDlg, LOWORD(wParam));
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+
 
 // 파일을 읽어온다.
 vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout)
