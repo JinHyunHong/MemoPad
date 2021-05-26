@@ -6,6 +6,7 @@
 
 #define MAX_LOADSTRING 100
 #define MAX_LINE 20
+#define MAX_NOUN_SIZE 10
 
 // 전역 변수:
 HINSTANCE g_hInst;                                // 현재 인스턴스입니다.
@@ -14,7 +15,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름�
 RECT g_WindowRC = { 0, 0, 800, 500 };
 static float g_fOffsetX;
 static float g_fOffsetY;
-WCHAR g_CH_SPELLING_Temp[10];
+WCHAR g_CH_SPELLING_Temp[MAX_NOUN_SIZE];
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -237,8 +238,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     else
                         vecStorageText.push_back(vecStrBuffer.at(i));
                 }
-
-                InvalidateRect(hWnd, NULL, TRUE);
+                InvalidateRect(hWnd, NULL, TRUE);    
                 CreateCaret(hWnd, NULL, 3, 15);
                 bTextUpdate = true;
                 UpdateWindow(hWnd);
@@ -331,6 +331,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
 
                 fclose(fSaveFile);
+
+                CreateCaret(hWnd, NULL, 3, 15);
             }
             break;
         }
@@ -346,10 +348,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 HDC hdc = GetDC(hWnd);
                 fColor = FONT.rgbColors;
                 InvalidateRgn(hWnd, NULL, TRUE);
+                CreateCaret(hWnd, NULL, 3, 15);
                 bTextUpdate = true;
             }
-
-            
             break;
             // 단어를 바꿔준다.
         case ID_CH_SPELLING:
@@ -394,6 +395,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 TextReplacePos.y = 0;
 
                 int iSameCount = 0;
+
+                if (sTextWideTemp.size() > 0 && sTextWideTemp.size() <= 2)
+                    MessageBox(hWnd, L"글자 수가 3 이상 단어만 검색할 수 있습니다.", L"주의", MB_OK);
 
                 if (sTextWideTemp.size() > 2)
                 {
@@ -492,7 +496,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     }
                
                 }
+
             }
+
         }
         break;
 
@@ -500,6 +506,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case ID_LineSpacing:
             DialogBox(g_hInst, MAKEINTRESOURCE(IDD_LINESPACING), hWnd, LINESPACING);
             InvalidateRect(hWnd, NULL, TRUE);
+            CreateCaret(hWnd, NULL, 3, 15);
             bTextUpdate = true;
             break;
 
@@ -679,6 +686,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
+    UNREFERENCED_PARAMETER(lParam);
     switch (iMsg)
     {
     case WM_INITDIALOG:
@@ -689,22 +697,22 @@ INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
         case ID_CHANGE:
             GetDlgItemText(hDlg, IDC_EDIT1, g_CH_SPELLING_Temp, 10);
             EndDialog(hDlg, LOWORD(wParam));
-            break;
+            return (INT_PTR)TRUE;
         case ID_CANCEL:
             EndDialog(hDlg, LOWORD(wParam));
-            break;
+            return(INT_PTR)TRUE;
         }
         break;
     case WM_CLOSE:
         EndDialog(hDlg, LOWORD(wParam));
-        break;
+        return (INT_PTR)TRUE;
     }
     return (INT_PTR)FALSE;
 }
 
 INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
-    long long iSize = 0;
+    UNREFERENCED_PARAMETER(lParam);
     TCHAR buffer[10];
     switch (iMsg)
     {
@@ -717,14 +725,15 @@ INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
             GetDlgItemText(hDlg, IDC_EDIT1, buffer, 10);
             g_fOffsetY = _wtoi(buffer);
             EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
         case ID_CANCEL:
             EndDialog(hDlg, LOWORD(wParam));
-            break;
+            return (INT_PTR)TRUE;
         }
         break;
     case WM_CLOSE:
         EndDialog(hDlg, LOWORD(wParam));
-        break;
+        return (INT_PTR)TRUE;
     }
     return (INT_PTR)FALSE;
 }
