@@ -205,7 +205,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             OFN.lpstrInitialDir = _T(".");
             OFN.lpstrFilter = filter;
             // 열기 대화상자를 보여준다.
-            if (GetOpenFileName(&OFN) != 0)
+            if (GetOpenFileName(&OFN))
             {
                 vector<string> vecStrBuffer;
                 // 기존 모두 초기화
@@ -238,11 +238,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     else
                         vecStorageText.push_back(vecStrBuffer.at(i));
                 }
-                InvalidateRect(hWnd, NULL, TRUE);    
-                CreateCaret(hWnd, NULL, 3, 15);
-                bTextUpdate = true;
-                UpdateWindow(hWnd);
             }
+
+           InvalidateRect(hWnd, NULL, TRUE);
+           CreateCaret(hWnd, NULL, 3, 15);
+           bTextUpdate = true;
+           UpdateWindow(hWnd);
         }
             break;
 
@@ -331,9 +332,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
 
                 fclose(fSaveFile);
-
-                CreateCaret(hWnd, NULL, 3, 15);
             }
+
+            InvalidateRect(hWnd, NULL, TRUE);
+            CreateCaret(hWnd, NULL, 3, 15);
+            bTextUpdate = true;
+            UpdateWindow(hWnd);
             break;
         }
 
@@ -347,10 +351,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 HDC hdc = GetDC(hWnd);
                 fColor = FONT.rgbColors;
-                InvalidateRgn(hWnd, NULL, TRUE);
-                CreateCaret(hWnd, NULL, 3, 15);
-                bTextUpdate = true;
             }
+            InvalidateRgn(hWnd, NULL, TRUE);
+            CreateCaret(hWnd, NULL, 3, 15);
+            bTextUpdate = true;
+            UpdateWindow(hWnd);
             break;
             // 단어를 바꿔준다.
         case ID_CH_SPELLING:
