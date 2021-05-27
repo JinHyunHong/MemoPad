@@ -160,6 +160,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     HFONT hFont, OldFont = 0;
     static LOGFONT LogFont;
 
+    //펜 관련 변수 선언
+    static bool g_bDraw = false;	//	마우스가 눌린 상태인지 확인할 수 있는 bool 변수
+    static int g_iX;				//	마우스의 x좌표값
+    static int g_iY;				//	마우스의 y좌표값
+    static int iDrawCount;
+
+    HPEN MyPen = NULL;
+    int P_Color = RGB(0, 255, 0);
+
+    POINT pt;
+
 
     switch (message)
     {
@@ -171,7 +182,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         g_fOffsetY = 20;
         iBackEmptyCount = 1;
         bTextUpdate = false;
-        bInputAble = true;
+        bInputAble = true;               
+        iDrawCount = -1;
         CreateCaret(hWnd, NULL, 3, 15);
         break;
     case WM_COMMAND:
@@ -502,6 +514,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+        case ID_HIGHPEN:
+            iDrawCount = -1;
+            InvalidateRect(hWnd, NULL, TRUE);
+            bTextUpdate = true;
+            break;
+
 
         case ID_LineSpacing:
             DialogBox(g_hInst, MAKEINTRESOURCE(IDD_LINESPACING), hWnd, LINESPACING);
@@ -578,9 +596,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         break;
     }
+   
+    // 그림 그리기 시작 
 
-    case WM_LBUTTONDOWN:
+    case WM_LBUTTONDOWN:            // 마우스 누름 
     {
+        if (iDrawCount == 0)
+        {
+            POINT pt;
+            pt.x = GET_X_LPARAM(lParam);
+            pt.y = GET_Y_LPARAM(lParam);
+
+            //	좌표를 얻어와야 한다.
+            g_iY = HIWORD(lParam);
+            g_iX = LOWORD(lParam);
+            //	마우스가 눌려 있다.
+            g_bDraw = true;
+            
+        }
+
+        else
+        {
+            iDrawCount = 0;
+            g_bDraw = false;
+        }
+
+
+
+        break;
 
     }
     break;
@@ -648,6 +691,44 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         }
         InvalidateRect(hWnd, NULL, FALSE);
+        break;
+    }
+
+    //	그림 그리는 중( 마우스가 눌린 상태에서만 )
+    case WM_MOUSEMOVE:		//	마우스 이동
+    {
+        if (g_bDraw == true)	// 마우스가 눌려있는가?
+        {
+            // DC를 얻어온다.
+            HDC hDC = GetDC(hWnd);
+
+            HPEN MyPen = CreatePen(PS_SOLID, 5, RGB(255, 255, 121));
+            HPEN hPrevPen = (HPEN)SelectObject(hDC, MyPen);
+
+            //	선의 시작점을 셋팅한다.( 이전 좌표점이어야 한다. )
+            hPrevPen = (HPEN)SelectObject(hDC, MyPen);
+            MoveToEx(hDC, g_iX, g_iY, NULL);
+
+            //	현재 마우스 좌표를 얻어온다.
+            g_iY = HIWORD(lParam);
+            g_iX = LOWORD(lParam);
+
+            //	선을 긋는다.
+            LineTo(hDC, g_iX, g_iY);
+
+            //	DC를 release 시킨다.
+            ReleaseDC(hWnd, hDC);
+        }
+
+        break;
+    }
+
+    //	그림 그리기 끝
+    case WM_LBUTTONUP:		//	마우스 
+    {
+        //	마우스가 눌려있다가 떼진 경우이므로, 그리는 동작이 끝났음을 의미
+        g_bDraw = false;
+
         break;
     }
 
