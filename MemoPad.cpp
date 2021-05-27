@@ -16,6 +16,9 @@ RECT g_WindowRC = { 0, 0, 800, 500 };
 static float g_fOffsetX;
 static float g_fOffsetY;
 WCHAR g_CH_SPELLING_Temp[MAX_NOUN_SIZE];
+static HBRUSH g_WindowBrush;
+
+
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -73,6 +76,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 //
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
+    SYSTEMTIME g_SystemTime;
+    GetLocalTime(&g_SystemTime);
+    int iHour = g_SystemTime.wHour;
+    iHour = 20;
+
+    if (iHour > 5 && iHour < 19)
+    {
+        g_WindowBrush = (HBRUSH)GetStockObject(WHITE_BRUSH);
+    }
+
+    else
+    {
+        g_WindowBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
+
+    }
+
     WNDCLASSEXW wcex;
 
     wcex.cbSize = sizeof(WNDCLASSEX);
@@ -84,7 +103,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hInstance = hInstance;
     wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
     wcex.hCursor = LoadCursor(nullptr, IDC_IBEAM);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.hbrBackground = g_WindowBrush;
     wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_MEMOPAD);
     wcex.lpszClassName = szWindowClass;
     wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_ICON1));
@@ -586,7 +605,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             RECT rc = { tPos.x, tPos.y, tPos.x + 5, tPos.y + g_fOffsetY };
 
             // Caret 부분이 남지 않도록 지워준다.
-            FillRect(hdc, &rc, (HBRUSH)(COLOR_WINDOW + 1));
+            FillRect(hdc, &rc, g_WindowBrush);
 
             if (!(vecStorageText.empty() && vectext.empty() && iLine > MAX_LINE))
             {
@@ -639,6 +658,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         ShowCaret(hWnd);
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
+        SetBkMode(hdc, TRANSPARENT);
 
         // 폰트 관련 함수
         hFont = CreateFontIndirect(&LogFont);
