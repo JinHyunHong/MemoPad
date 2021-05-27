@@ -16,7 +16,14 @@ RECT g_WindowRC = { 0, 0, 800, 500 };
 static float g_fOffsetX;
 static float g_fOffsetY;
 WCHAR g_CH_SPELLING_Temp[MAX_NOUN_SIZE];
+
+// 배경 처리
 static HBRUSH g_WindowBrush;
+static int iHour;
+
+
+// 폰트 관련 변수
+static COLORREF fColor;
 
 
 
@@ -78,18 +85,19 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 {
     SYSTEMTIME g_SystemTime;
     GetLocalTime(&g_SystemTime);
-    int iHour = g_SystemTime.wHour;
-    iHour = 20;
+    iHour = g_SystemTime.wHour;
+    iHour = 10;
 
     if (iHour > 5 && iHour < 19)
     {
         g_WindowBrush = (HBRUSH)GetStockObject(WHITE_BRUSH);
+        fColor = RGB(0, 0, 0);
     }
 
     else
     {
         g_WindowBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
-
+        fColor = RGB(255, 255, 255);
     }
 
     WNDCLASSEXW wcex;
@@ -175,7 +183,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     // 폰트 관련 변수 선언
     CHOOSEFONT FONT;
-    static COLORREF fColor;
     HFONT hFont, OldFont = 0;
     static LOGFONT LogFont;
 
@@ -659,6 +666,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
         SetBkMode(hdc, TRANSPARENT);
+
+        if (iHour > 5 && iHour < 19)
+        {
+            SetBkColor(hdc, RGB(0,0,0));
+        }
+
+        else
+        {
+            SetBkColor(hdc, RGB(255, 255, 255));
+        }
+        
 
         // 폰트 관련 함수
         hFont = CreateFontIndirect(&LogFont);
