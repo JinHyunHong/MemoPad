@@ -86,7 +86,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     SYSTEMTIME g_SystemTime;
     GetLocalTime(&g_SystemTime);
     iHour = g_SystemTime.wHour;
-    iHour = 10;
 
     if (iHour > 5 && iHour < 19)
     {
@@ -440,7 +439,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 int iSameCount = 0;
 
                 if (sTextWideTemp.size() > 0 && sTextWideTemp.size() <= 2)
+                {
                     MessageBox(hWnd, L"글자 수가 3 이상 단어만 검색할 수 있습니다.", L"주의", MB_OK);
+                    InvalidateRect(hWnd, NULL, TRUE);
+                    CreateCaret(hWnd, NULL, 3, 15);
+                    bTextUpdate = true;
+                    break;
+                }
+                    
 
                 if (sTextWideTemp.size() > 2)
                 {
@@ -457,6 +463,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                                 if (iSameCount == sTextWideTemp.size() / 2 + 1)
                                 {
                                     sNoun = vecNounBuffer.at(i);
+                                    bFind = true;
                                     break;
                                 }
                             }
@@ -464,6 +471,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             else
                                 iSameCount = 0;
                         }
+                    }
+
+                    // 관련 단어를 찾지 못했다면 빠져나온다.
+                    if (!bFind)
+                    {
+                        MessageBox(hWnd, L"관련 단어를 찾을 수 없습니다.", L"찾을 수 없음", MB_OK);
+                        InvalidateRect(hWnd, NULL, TRUE);
+                        CreateCaret(hWnd, NULL, 3, 15);
+                        bTextUpdate = true;
+                        break;
                     }
 
                     iSameCount = 0;
@@ -482,7 +499,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                                     StorReplacePos.x = j - sTextWideTemp.size() + 2;
                                     StorReplacePos.y = i;
                                     bFind = true;
-                                    break;
                                 }
                             }
 
@@ -496,6 +512,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         vecStorageText.at(StorReplacePos.y).insert(StorReplacePos.x, sNoun);
                         InvalidateRect(hWnd, NULL, TRUE);
                         bTextUpdate = true;
+                        CreateCaret(hWnd, NULL, 3, 15);
+                        break;
                     }
 
                     // 기존 버퍼에 없으므로 재탐색을 위해 다시 초기화
@@ -531,18 +549,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             vectext.at(TextReplacePos.y).erase(TextReplacePos.x, sTextWideTemp.size());
                             vectext.at(TextReplacePos.y).insert(TextReplacePos.x, sNoun);
                             InvalidateRect(hWnd, NULL, TRUE);
+                            bTextUpdate = true;
+                            CreateCaret(hWnd, NULL, 3, 15);
+                            break;
                         }
 
-                        else
-                            MessageBox(hWnd, L"해당 단어가 존재하지 않습니다.", L"찾을 수 없음", MB_OK);
 
                     }
                
                 }
-
             }
-
         }
+        InvalidateRect(hWnd, NULL, TRUE);
+        CreateCaret(hWnd, NULL, 3, 15);
+        bTextUpdate = true;
         break;
 
         case ID_HIGHPEN:
@@ -665,16 +685,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         ShowCaret(hWnd);
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
-        SetBkMode(hdc, TRANSPARENT);
 
         if (iHour > 5 && iHour < 19)
         {
-            SetBkColor(hdc, RGB(0,0,0));
+            SetBkColor(hdc, RGB(255,255,255));
         }
 
         else
         {
-            SetBkColor(hdc, RGB(255, 255, 255));
+            SetBkColor(hdc, RGB(0, 0, 0));
         }
         
 
