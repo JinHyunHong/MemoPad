@@ -39,12 +39,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="small.ico">
-      <Filter>리소스 파일</Filter>
-    </Image>
-    <Image Include="MemoPad.ico">
-      <Filter>리소스 파일</Filter>
-    </Image>
     <Image Include="Icon.ico">
       <Filter>리소스 파일</Filter>
     </Image>
