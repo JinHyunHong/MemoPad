@@ -471,21 +471,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             else
                                 iSameCount = 0;
                         }
+
+                        if (bFind)
+                            break;
                     }
 
                     // 관련 단어를 찾지 못했다면 빠져나온다.
                     if (!bFind)
                     {
-                        MessageBox(hWnd, L"관련 단어를 찾을 수 없습니다.", L"찾을 수 없음", MB_OK);
+                        MessageBox(hWnd, L"텍스트 내용과 연관된 단어를 찾을 수 없습니다.", L"찾을 수 없음", MB_OK);
                         InvalidateRect(hWnd, NULL, TRUE);
                         CreateCaret(hWnd, NULL, 3, 15);
                         bTextUpdate = true;
                         break;
                     }
 
+                    bFind = false;
                     iSameCount = 0;
 
-                    // 버퍼에 입력한 문자열이 있는지 검사한다.
+                    // 버퍼에 입력한 문자열이 있는지 순차대로 검사한다.
                     for (int i = 0; i < vecStorageText.size(); i++)
                     {
                         for (int j = 0; j < vecStorageText.at(i).size(); j++)
@@ -494,18 +498,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             {
                                 iSameCount++;
 
-                                if (iSameCount == sTextWideTemp.size() - 1)
+                                if (iSameCount == sTextWideTemp.size())
                                 {
-                                    StorReplacePos.x = j - sTextWideTemp.size() + 2;
+                                    StorReplacePos.x = j - sTextWideTemp.size() + 1;
                                     StorReplacePos.y = i;
                                     bFind = true;
+                                    break;
                                 }
                             }
 
                             else
                                 iSameCount = 0;
                         }
+
+                        if (bFind)
+                            break;
                     }
+
                     if (bFind)
                     {
                         vecStorageText.at(StorReplacePos.y).erase(StorReplacePos.x, sTextWideTemp.size());
@@ -530,10 +539,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                                 {
                                     iSameCount++;
 
-                                    if (iSameCount == sTextWideTemp.size() - 1)
+                                    if (iSameCount == sTextWideTemp.size())
                                     {
-                                        TextReplacePos.x = j - sTextWideTemp.size() + 2;
-                                        TextReplacePos.y = i;
+                                        StorReplacePos.x = j - sTextWideTemp.size() + 1;
+                                        StorReplacePos.y = i;
                                         bFind = true;
                                         break;
                                     }
@@ -542,6 +551,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                                 else
                                     iSameCount = 0;
                             }
+                            if (bFind)
+                                break;
                         }
 
                         if (bFind)
@@ -552,6 +563,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             bTextUpdate = true;
                             CreateCaret(hWnd, NULL, 3, 15);
                             break;
+                        }
+                        
+
+                        else
+                        {
+                            MessageBox(hWnd, L"텍스트 내용과 일치하는 텍스트가 없습니다.", L"찾을 수 없음", MB_OK);
                         }
 
 
