@@ -219,6 +219,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
         case ID_NEW:
         {
+            // 기존작업을 지우고 새로운 파일로 진행한다.
             MessageBox(hWnd, L"새 파일을 열겠습니까?", L"새 파일 선택", MB_OKCANCEL);
             vecStorageText.clear();
             vectext.clear();
@@ -232,6 +233,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         case ID_OPEN:
         {
+            // 새 파일을 연다.
             memset(&OFN, 0, sizeof(OPENFILENAME));
             OFN.lStructSize = sizeof(OPENFILENAME);
             OFN.hwndOwner = hWnd;
@@ -286,6 +288,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case ID_SAVE:
         {
+            // 작업한 내역을 파일로 저장한다.
             memset(&SFN, 0, sizeof(OPENFILENAME));
             SFN.lStructSize = sizeof(OPENFILENAME);
             SFN.hwndOwner = hWnd;
@@ -379,6 +382,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         case ID_FONT:
+            // 글자에 폰트를 적용한다.
             memset(&FONT, 0, sizeof(CHOOSEFONT));
             FONT.lStructSize = sizeof(CHOOSEFONT);
             FONT.hwndOwner = hWnd;
@@ -394,9 +398,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             bTextUpdate = true;
             UpdateWindow(hWnd);
             break;
-            // 단어를 바꿔준다.
+            
         case ID_CH_SPELLING:
         {
+            // 단어를 바꿔준다.
             TCHAR cFilePath[100];
             memset(cFilePath, 0, sizeof(cFilePath));
 
@@ -583,6 +588,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
         case ID_HIGHPEN:
+            // 펜으로 그림을 그린다. 
             iDrawCount = -1;
             InvalidateRect(hWnd, NULL, TRUE);
             bTextUpdate = true;
@@ -590,6 +596,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
         case ID_LineSpacing:
+            // 줄 간격을 설정한다.
             DialogBox(g_hInst, MAKEINTRESOURCE(IDD_LINESPACING), hWnd, LINESPACING);
             InvalidateRect(hWnd, NULL, TRUE);
             CreateCaret(hWnd, NULL, 3, 15);
@@ -667,8 +674,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
    
     // 그림 그리기 시작 
 
-    case WM_LBUTTONDOWN:            // 마우스 누름 
+    case WM_LBUTTONDOWN:            
     {
+        // 마우스 누름 
         if (iDrawCount == 0)
         {
             POINT pt;
@@ -747,6 +755,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_CHAR:
     {
+        // 최대 라인을 넘었을 경우
         if (iLine > MAX_LINE)
         {
             MessageBox(hWnd, L"입력 가능 문자열 초과", L"메모장", MB_OK);
@@ -774,9 +783,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     //	그림 그리는 중( 마우스가 눌린 상태에서만 )
-    case WM_MOUSEMOVE:		//	마우스 이동
+    //	마우스 이동
+    case WM_MOUSEMOVE:		
     {
-        if (g_bDraw == true)	// 마우스가 눌려있는가?
+        // 마우스가 눌려있는가?
+        if (g_bDraw == true)	
         {
             // DC를 얻어온다.
             HDC hDC = GetDC(hWnd);
@@ -803,7 +814,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     //	그림 그리기 끝
-    case WM_LBUTTONUP:		//	마우스 
+    case WM_LBUTTONUP:		
     {
         //	마우스가 눌려있다가 떼진 경우이므로, 그리는 동작이 끝났음을 의미
         g_bDraw = false;
