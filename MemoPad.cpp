@@ -220,15 +220,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case ID_NEW:
         {
             // 기존작업을 지우고 새로운 파일로 진행한다.
-            MessageBox(hWnd, L"새 파일을 열겠습니까?", L"새 파일 선택", MB_OKCANCEL);
-            vecStorageText.clear();
-            vectext.clear();
-            vecStorageText.resize(1);
-            vectext.resize(1);
-            iLine = 0;
-            iCount = 0;
-            InvalidateRect(hWnd, NULL, TRUE);
-            SetCaretPos(g_fOffsetX, 0);
+            int iInput = MessageBox(hWnd, L"새 파일을 열겠습니까?", L"새 파일 선택", MB_OKCANCEL);
+            
+            switch (iInput)
+            {
+            case IDOK:
+                vecStorageText.clear();
+                vectext.clear();
+                vecStorageText.resize(1);
+                vectext.resize(1);
+                iLine = 0;
+                iCount = 0;
+                InvalidateRect(hWnd, NULL, TRUE);
+                SetCaretPos(g_fOffsetX, 0);
+                break;
+            case IDCANCEL:
+                break;
+            case IDCLOSE:
+                break;
+            default:
+                break;
+            }
             break;
         }
         case ID_OPEN:
