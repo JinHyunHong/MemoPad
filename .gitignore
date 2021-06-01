@@ -15,14 +15,13 @@
 Thumbs.db
 
 # Build results
-[Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
-x64/
 build/
 bld/
 [Bb]in/
 [Oo]bj/
+MemoPad.tlog/
 
 # Build Results
 [Dd]ebugPS/
@@ -53,3 +52,9 @@ dlldata.c
 *.pidb
 *.svclog
 *.scc
+*.recipe
+*.idb
+*.obj
+*.res
+MemoPad.vcxproj.FileListAbsolute.txt
+

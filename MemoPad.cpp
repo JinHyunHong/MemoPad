@@ -86,6 +86,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     SYSTEMTIME g_SystemTime;
     GetLocalTime(&g_SystemTime);
     iHour = g_SystemTime.wHour;
+    iHour = 20;
 
     if (iHour > 5 && iHour < 19)
     {
