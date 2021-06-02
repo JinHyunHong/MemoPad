@@ -6,7 +6,6 @@ red
 black
 puple
 coke
-cider
 area
 book
 business
@@ -55,4 +54,8 @@ woman
 word
 work
 world
+hat
+hot
+sit
+cider
 year

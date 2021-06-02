@@ -34,6 +34,7 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK ADDNOUNLIST(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -197,6 +198,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     POINT pt;
 
+    // 메뉴 checked를 위해 HMENU
+    static HMENU hMenu = GetMenu(hWnd);
+
 
     switch (message)
     {
@@ -208,7 +212,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         g_fOffsetY = 20;
         iBackEmptyCount = 1;
         bTextUpdate = false;
-        bInputAble = true;               
+        bInputAble = true;
         iDrawCount = -1;
         CreateCaret(hWnd, NULL, 3, 15);
         break;
@@ -222,7 +226,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             // 기존작업을 지우고 새로운 파일로 진행한다.
             int iInput = MessageBox(hWnd, L"새 파일을 열겠습니까?", L"새 파일 선택", MB_OKCANCEL);
-            
+
             switch (iInput)
             {
             case IDOK:
@@ -292,12 +296,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
 
-           InvalidateRect(hWnd, NULL, TRUE);
-           CreateCaret(hWnd, NULL, 3, 15);
-           bTextUpdate = true;
-           UpdateWindow(hWnd);
+            InvalidateRect(hWnd, NULL, TRUE);
+            CreateCaret(hWnd, NULL, 3, 15);
+            bTextUpdate = true;
+            UpdateWindow(hWnd);
         }
-            break;
+        break;
 
         case ID_SAVE:
         {
@@ -411,7 +415,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             bTextUpdate = true;
             UpdateWindow(hWnd);
             break;
-            
+
         case ID_CH_SPELLING:
         {
             // 단어를 바꿔준다.
@@ -464,7 +468,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     bTextUpdate = true;
                     break;
                 }
-                    
+
 
                 if (sTextWideTemp.size() > 2)
                 {
@@ -582,7 +586,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             CreateCaret(hWnd, NULL, 3, 15);
                             break;
                         }
-                        
+
 
                         else
                         {
@@ -591,7 +595,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
                     }
-               
+
                 }
             }
         }
@@ -600,11 +604,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         bTextUpdate = true;
         break;
 
+        case ID_ADDNOUNLIST:
+            DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_NOUNLIST), hWnd, ADDNOUNLIST);
+            break;
+
         case ID_HIGHPEN:
-            // 펜으로 그림을 그린다. 
-            iDrawCount = -1;
-            InvalidateRect(hWnd, NULL, TRUE);
-            bTextUpdate = true;
+        {
+            UINT state = GetMenuState(hMenu, ID_HIGHPEN, MF_BYCOMMAND);
+            if (state == MF_CHECKED)
+            {
+                CheckMenuItem(hMenu, ID_HIGHPEN, MF_UNCHECKED);
+                // 펜으로 그림을 그린다. 
+                iDrawCount = -1;
+                InvalidateRect(hWnd, NULL, TRUE);
+                bTextUpdate = true;
+            }
+
+            else
+            {
+                CheckMenuItem(hMenu, ID_HIGHPEN, MF_CHECKED);
+                // 펜으로 그림을 그린다. 
+                iDrawCount = 0;
+                InvalidateRect(hWnd, NULL, TRUE);
+                bTextUpdate = true;
+            }
+
+        }
             break;
 
 
@@ -625,8 +650,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
         }
-        }
-        break;
+    }
+    break;
 
     case WM_KEYDOWN:
     {
@@ -684,10 +709,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         break;
     }
-   
+
     // 그림 그리기 시작 
 
-    case WM_LBUTTONDOWN:            
+    case WM_LBUTTONDOWN:
     {
         // 마우스 누름 
         if (iDrawCount == 0)
@@ -701,22 +726,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             g_iX = LOWORD(lParam);
             //	마우스가 눌려 있다.
             g_bDraw = true;
-            
+
         }
-
-        else
-        {
-            iDrawCount = 0;
-            g_bDraw = false;
-        }
-
-
 
         break;
 
     }
     break;
-
 
     case WM_PAINT:
     {
@@ -919,6 +935,158 @@ INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
         EndDialog(hDlg, LOWORD(wParam));
         return (INT_PTR)TRUE;
     }
+    return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK ADDNOUNLIST(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+    static HWND hList;
+    static int iSelection = -1;
+    static vector<string> vecNounBuffer;
+    TCHAR name[20] = { 0, };
+    UNREFERENCED_PARAMETER(lParam);
+    switch (iMsg)
+    {
+    case WM_INITDIALOG:
+        hList = GetDlgItem(hDlg, IDC_LIST_Name);
+
+        // 파일을 읽어들인다.
+        TCHAR cFilePath[100];
+        memset(cFilePath, 0, sizeof(cFilePath));
+
+        if (GetCurrentDirectory(sizeof(cFilePath), cFilePath) > 0)
+        {
+
+            cFilePath[lstrlen(cFilePath)] = '\\';
+            cFilePath[lstrlen(cFilePath)] = 'n';
+            cFilePath[lstrlen(cFilePath)] = 'o';
+            cFilePath[lstrlen(cFilePath)] = 'u';
+            cFilePath[lstrlen(cFilePath)] = 'n';
+            cFilePath[lstrlen(cFilePath)] = '.';
+            cFilePath[lstrlen(cFilePath)] = 't';
+            cFilePath[lstrlen(cFilePath)] = 'x';
+            cFilePath[lstrlen(cFilePath)] = 't';
+
+            // 명사 파일에서 명사 목록을 불러온다.
+            vecNounBuffer = OutFromFile(cFilePath, 0, false);
+
+            
+
+            for (int i = 0; i < vecNounBuffer.size(); i++)
+            {
+                TCHAR AddName[20] = { 0, };
+                int nLen = MultiByteToWideChar(CP_ACP, 0, vecNounBuffer.at(i).c_str(), strlen(vecNounBuffer.at(i).c_str()), NULL, NULL);
+                MultiByteToWideChar(CP_ACP, 0, vecNounBuffer.at(i).c_str(), strlen(vecNounBuffer.at(i).c_str()), AddName, nLen);
+                SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)AddName);
+            }
+        }
+        return (INT_PTR)TRUE;
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case ID_SAVE:
+            FILE* fSaveFile;
+            fopen_s(&fSaveFile, "noun.txt", "wt");
+
+            if (fSaveFile)
+            {
+                TCHAR buffer[500];
+                memset(buffer, 0, sizeof(buffer));
+
+                int ibufferLastIndex = 0;
+
+                // 버퍼에 문자 읽어들이기
+                for (int i = 0; i < vecNounBuffer.size(); ++i)
+                {
+                    for (int j = 0; j < vecNounBuffer.at(i).size(); ++j)
+                    {
+
+                        buffer[j + ibufferLastIndex] = vecNounBuffer.at(i).at(j);
+
+
+                        if (j + 1 >= vecNounBuffer.at(i).size())
+                        {
+                            ibufferLastIndex = j + ibufferLastIndex + 1;
+                        }
+
+                    }
+
+                    buffer[ibufferLastIndex] = CHAR('\n');
+                    ibufferLastIndex += 1;
+
+                }
+                _fputts(buffer, fSaveFile);
+            }
+
+            fclose(fSaveFile);
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        case ID_CANCEL:
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        case ID_ADD:
+            GetDlgItemText(hDlg, IDC_EDIT1, name, 20);
+            if (_tcscmp(name, _T("")))
+            {
+                char AddStr[20] = { 0, };
+                SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)name);
+                int len = WideCharToMultiByte(CP_ACP, 0, name, -1, NULL, 0, NULL, NULL);
+                WideCharToMultiByte(CP_ACP, 0, name, -1, AddStr, len, NULL, NULL);
+
+                vecNounBuffer.push_back(AddStr);
+
+                // 에디트 박스 초기화
+                SetWindowText(GetDlgItem(hDlg, IDC_EDIT1), 0);
+            }
+            return (INT_PTR)TRUE;
+        case ID_EDIT:
+            if (iSelection != -1)
+            {
+                // 해당 인덱스 편집
+                GetDlgItemText(hDlg, IDC_EDIT1, name, 20);
+                SendMessage(hList, LB_DELETESTRING, iSelection, 0);
+                SendMessage(hList, LB_ADDSTRING, iSelection, (LPARAM)name);
+                iSelection = -1;
+                return (INT_PTR)TRUE;
+            }
+        case ID_DELETE:
+        {
+            char sCompare[20] = { 0, };
+            SendMessage(hList, LB_GETTEXT, iSelection, (LPARAM)name);
+            SendMessage(hList, LB_DELETESTRING, iSelection, 0);
+
+            vector<string>::iterator iter;
+            vector<string>::iterator iterEnd = vecNounBuffer.end();
+
+            int len = WideCharToMultiByte(CP_ACP, 0, name, -1, NULL, 0, NULL, NULL);
+            WideCharToMultiByte(CP_ACP, 0, name, -1, sCompare, len, NULL, NULL);
+
+
+            for (iter = vecNounBuffer.begin(); iter != iterEnd; iter++)
+            {
+                if ((*iter) == sCompare)
+                {
+                    (*iter).erase();
+                    vecNounBuffer.erase(iter);
+                    break;
+                }
+            }
+            return (INT_PTR)TRUE;
+        }
+        case IDC_LIST_Name:
+            if (HIWORD(wParam) == LBN_SELCHANGE)
+                iSelection = (int)SendMessage(hList, LB_GETCURSEL, 0, 0);
+            // 기존 해당 인덱스 텍스트를 가져온다.
+            SendMessage(hList, LB_GETTEXT, iSelection, (LPARAM)name);
+            SetWindowText(GetDlgItem(hDlg, IDC_EDIT1), name);
+            return (INT_PTR)TRUE;
+        }
+        break;
+    case WM_CLOSE:
+        EndDialog(hDlg, LOWORD(wParam));
+        return (INT_PTR)TRUE;;
+    }
+
     return (INT_PTR)FALSE;
 }
 
