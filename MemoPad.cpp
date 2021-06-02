@@ -416,7 +416,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             UpdateWindow(hWnd);
             break;
 
-        case ID_CH_SPELLING:
+        // 자동 명사 고침
+        case ID_AUTONOUNFIX:
+        {
+            UINT state = GetMenuState(hMenu, ID_AUTONOUNFIX, MF_BYCOMMAND);
+            if (state == MF_CHECKED)
+            {
+                CheckMenuItem(hMenu, ID_AUTONOUNFIX, MF_UNCHECKED);
+            }
+
+            else
+            {
+                CheckMenuItem(hMenu, ID_AUTONOUNFIX, MF_CHECKED);
+            }
+        }
+            break;
+
+
+        // 수동 명사 고침
+        case ID_MANUALNOUNFIX:
         {
             // 단어를 바꿔준다.
             TCHAR cFilePath[100];
@@ -563,8 +581,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                                     if (iSameCount == sTextWideTemp.size())
                                     {
-                                        StorReplacePos.x = j - sTextWideTemp.size() + 1;
-                                        StorReplacePos.y = i;
+                                        TextReplacePos.x = j - sTextWideTemp.size() + 1;
+                                        TextReplacePos.y = i;
                                         bFind = true;
                                         break;
                                     }
@@ -618,6 +636,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 iDrawCount = -1;
                 InvalidateRect(hWnd, NULL, TRUE);
                 bTextUpdate = true;
+                g_bDraw = false;
             }
 
             else
@@ -703,6 +722,145 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 vecStorageText.push_back(vectext.at(vectext.size() - 1));
                 vectext.clear();
                 vectext.resize(1);
+            }
+        }
+
+        if (wParam == VK_SPACE)
+        {
+            // 자동 명사 기능이 체크 되었을 경우 기능이 실행된다.
+            UINT state = GetMenuState(hMenu, ID_AUTONOUNFIX, MF_BYCOMMAND);
+            if (state == MF_CHECKED)
+            {
+                // 단어를 바꿔준다.
+                TCHAR cFilePath[100];
+                memset(cFilePath, 0, sizeof(cFilePath));
+
+                if (GetCurrentDirectory(sizeof(cFilePath), cFilePath) > 0)
+                {
+                    vector<string> vecNounBuffer;
+
+                    cFilePath[lstrlen(cFilePath)] = '\\';
+                    cFilePath[lstrlen(cFilePath)] = 'n';
+                    cFilePath[lstrlen(cFilePath)] = 'o';
+                    cFilePath[lstrlen(cFilePath)] = 'u';
+                    cFilePath[lstrlen(cFilePath)] = 'n';
+                    cFilePath[lstrlen(cFilePath)] = '.';
+                    cFilePath[lstrlen(cFilePath)] = 't';
+                    cFilePath[lstrlen(cFilePath)] = 'x';
+                    cFilePath[lstrlen(cFilePath)] = 't';
+
+                    // 명사 파일에서 명사 목록을 불러온다.
+                    vecNounBuffer = OutFromFile(cFilePath, hWnd, false);
+
+                    // 유니코드를 변환
+                    wstring sText_Temp(g_CH_SPELLING_Temp);
+                    string sTextWideTemp(sText_Temp.begin(), sText_Temp.end());
+
+                    // 부분 변환 부분 찾기
+                    bool bFind;
+                    POINT StorReplacePos;
+                    POINT TextReplacePos;
+                    string sNoun;
+
+                    // 변수 초기화
+                    bFind = false;
+                    StorReplacePos.x = 0;
+                    StorReplacePos.y = 0;
+
+                    int iSameCount = 0;
+
+                    // 스페이스 바 기준 왼쪽 문자열 얻어오기. 
+                    // 공백과 스페이스 사이의 문자열을 얻어오는 부분
+                    for (int i = vectext.at(0).size() - 1; i >= 0 ; i--)
+                    {
+                        if (vectext.at(0).at(i) != ' ')
+                        {
+                            sTextWideTemp.push_back(vectext.at(0).at(i));
+                        }
+
+                        else
+                            break;
+                    }
+
+                    reverse(sTextWideTemp.begin(), sTextWideTemp.end());
+
+                    // 3 글자 이상만 가능하도록
+                    if (sTextWideTemp.size() > 2)
+                    {
+                        // 가장 비슷한 명사를 검색한다.
+                        for (int i = 0; i < vecNounBuffer.size(); i++)
+                        {
+                            for (int j = 0; j < vecNounBuffer.at(i).size(); j++)
+                            {
+                                if (vecNounBuffer.at(i).at(j) == sTextWideTemp.at(iSameCount))
+                                {
+                                    iSameCount++;
+
+                                    // 절반 + 1 만큼 같다면 바꿔준다.
+                                    if (iSameCount == sTextWideTemp.size() / 2 + 1)
+                                    {
+                                        sNoun = vecNounBuffer.at(i);
+                                        bFind = true;
+                                        break;
+                                    }
+                                }
+
+                                else
+                                    iSameCount = 0;
+                            }
+
+                            if (bFind)
+                                break;
+                        }
+
+                        // 관련 단어를 찾지 못했다면 빠져나온다.
+                        if (!bFind)
+                        {
+                            InvalidateRect(hWnd, NULL, TRUE);
+                            CreateCaret(hWnd, NULL, 3, 15);
+                            bTextUpdate = true;
+                            break;
+                        }
+
+                        bFind = false;
+                        iSameCount = sTextWideTemp.size() - 1;
+
+                        // 실시간 입력 버퍼에 해당 입력한 문자열이 있는지 검사한다. 스페이스 바 기준 왼쪽으로 검사한다.
+                        for (int i = 0; i < vectext.size(); i++)
+                        {
+                           for (int j = vectext.at(i).size() - 1; j >= 0; j--)
+                           {
+                               if (vectext.at(i).at(j) == sTextWideTemp.at(iSameCount))
+                               {
+                                   iSameCount--;
+                           
+                                   if (iSameCount == - 1)
+                                   {
+                                       StorReplacePos.x = j;
+                                       StorReplacePos.y = i;
+                                       bFind = true;
+                                       break;
+                                   }
+                               }
+                           
+                               else
+                                   iSameCount = sTextWideTemp.size() - 1;
+                           }
+                           if (bFind)
+                                break;
+                        }
+
+                        if (bFind)
+                        {
+                            vectext.at(StorReplacePos.y).erase(StorReplacePos.x, sTextWideTemp.size());
+                            vectext.at(StorReplacePos.y).insert(StorReplacePos.x, sNoun);
+                            InvalidateRect(hWnd, NULL, TRUE);
+                            bTextUpdate = true;
+                            CreateCaret(hWnd, NULL, 3, 15);
+                            break;
+                        }
+                    }
+                }
             }
         }
 
