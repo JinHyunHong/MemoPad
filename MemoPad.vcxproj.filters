@@ -29,7 +29,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MemoPad.cpp">
+    <ClCompile Include="MemoPad_S.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoPad_C.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

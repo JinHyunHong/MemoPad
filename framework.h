@@ -19,5 +19,6 @@
 #include <vector>
 // 한글 출력 되도록 하는 라이브러리
 #include <imm.h>
+#define WM_ASYNC WM_USER+2
 
 using namespace std;

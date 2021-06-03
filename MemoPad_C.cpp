@@ -26,6 +26,19 @@ static int iHour;
 static COLORREF fColor;
 
 
+// 소켓 서버
+static WSADATA wsadata;
+static SOCKET s;
+static SOCKADDR_IN addr = { 0 }, c_addr;
+static int iSize, iMsgLen, iSocketCount;
+static char socketbuffer[100];
+static TCHAR socketstr[100];
+static TCHAR socketmsg[200];
+static bool bPaint;
+static HWND g_hDlg_Talk;
+
+
+
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -35,7 +48,9 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK ADDNOUNLIST(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout);
+void PrintMessage(HWND hList);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -135,8 +150,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     g_hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-    HWND hWnd = CreateWindowW(szWindowClass, L"MemoPad", WS_OVERLAPPEDWINDOW,
-        50, 50, g_WindowRC.right - g_WindowRC.left, 
+    HWND hWnd = CreateWindowW(szWindowClass, L"MemoPad_Client", WS_OVERLAPPEDWINDOW,
+        50, 50, g_WindowRC.right - g_WindowRC.left,
         g_WindowRC.bottom - g_WindowRC.top, nullptr, nullptr, hInstance, nullptr);
 
     if (!hWnd)
@@ -172,7 +187,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
     OPENFILENAME OFN, SFN;
-    
+
 
     TCHAR lpstrFile[100] = _T("");
     static char filepath[100], filename[100];
@@ -202,10 +217,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     static HMENU hMenu = GetMenu(hWnd);
 
 
+
     switch (message)
     {
         // 윈도우를 생성하기 전 메세지 전달
     case WM_CREATE:
+        WSAStartup(MAKEWORD(2, 2), &wsadata);
+        s = socket(AF_INET, SOCK_STREAM, 0);
+        addr.sin_family = AF_INET;
+        addr.sin_port = 20;
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        WSAAsyncSelect(s, hWnd, WM_ASYNC, FD_READ);
+        bPaint = false;
+        if (connect(s, (LPSOCKADDR)&addr, sizeof(addr)) == -1)
+            return 0;
+
         iLine = 0;
         iCount = 0;
         g_fOffsetX = 5;
@@ -215,6 +241,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         bInputAble = true;
         iDrawCount = -1;
         CreateCaret(hWnd, NULL, 3, 15);
+        break;
+
+    case WM_ASYNC:
+        switch (lParam)
+        {
+        case FD_READ:
+            iMsgLen = recv(s, socketbuffer, 100, 0);
+            socketbuffer[iMsgLen] = NULL;
+
+            bPaint = false;
+
+#ifdef _UNICODE
+            iMsgLen = MultiByteToWideChar(CP_ACP, 0, socketbuffer, strlen(socketbuffer), NULL, NULL);
+            MultiByteToWideChar(CP_ACP, 0, socketbuffer, strlen(socketbuffer), socketmsg, iMsgLen);
+            socketmsg[iMsgLen] = NULL;
+#else
+            strcpy_s(msg, buffer);
+#endif      
+            PrintMessage(g_hDlg_Talk);
+            break;
+        default:
+            break;
+        }
         break;
     case WM_COMMAND:
     {
@@ -416,7 +465,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             UpdateWindow(hWnd);
             break;
 
-        // 자동 명사 고침
+            // 자동 명사 고침
         case ID_AUTONOUNFIX:
         {
             UINT state = GetMenuState(hMenu, ID_AUTONOUNFIX, MF_BYCOMMAND);
@@ -430,7 +479,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 CheckMenuItem(hMenu, ID_AUTONOUNFIX, MF_CHECKED);
             }
         }
-            break;
+        break;
 
 
         // 수동 명사 고침
@@ -649,7 +698,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
         }
-            break;
+        break;
 
 
         case ID_LineSpacing:
@@ -658,6 +707,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             InvalidateRect(hWnd, NULL, TRUE);
             CreateCaret(hWnd, NULL, 3, 15);
             bTextUpdate = true;
+            break;
+
+        case ID_TALK:
+            DialogBox(g_hInst, MAKEINTRESOURCE(IDD_TALK), hWnd, TALK);
             break;
 
         case IDM_ABOUT:
@@ -771,7 +824,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                     // 스페이스 바 기준 왼쪽 문자열 얻어오기. 
                     // 공백과 스페이스 사이의 문자열을 얻어오는 부분
-                    for (int i = vectext.at(0).size() - 1; i >= 0 ; i--)
+                    for (int i = vectext.at(0).size() - 1; i >= 0; i--)
                     {
                         if (vectext.at(0).at(i) != ' ')
                         {
@@ -828,25 +881,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         // 실시간 입력 버퍼에 해당 입력한 문자열이 있는지 검사한다. 스페이스 바 기준 왼쪽으로 검사한다.
                         for (int i = 0; i < vectext.size(); i++)
                         {
-                           for (int j = vectext.at(i).size() - 1; j >= 0; j--)
-                           {
-                               if (vectext.at(i).at(j) == sTextWideTemp.at(iSameCount))
-                               {
-                                   iSameCount--;
-                           
-                                   if (iSameCount == - 1)
-                                   {
-                                       StorReplacePos.x = j;
-                                       StorReplacePos.y = i;
-                                       bFind = true;
-                                       break;
-                                   }
-                               }
-                           
-                               else
-                                   iSameCount = sTextWideTemp.size() - 1;
-                           }
-                           if (bFind)
+                            for (int j = vectext.at(i).size() - 1; j >= 0; j--)
+                            {
+                                if (vectext.at(i).at(j) == sTextWideTemp.at(iSameCount))
+                                {
+                                    iSameCount--;
+
+                                    if (iSameCount == -1)
+                                    {
+                                        StorReplacePos.x = j;
+                                        StorReplacePos.y = i;
+                                        bFind = true;
+                                        break;
+                                    }
+                                }
+
+                                else
+                                    iSameCount = sTextWideTemp.size() - 1;
+                            }
+                            if (bFind)
                                 break;
                         }
 
@@ -900,14 +953,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         if (iHour > 5 && iHour < 19)
         {
-            SetBkColor(hdc, RGB(255,255,255));
+            SetBkColor(hdc, RGB(255, 255, 255));
         }
 
         else
         {
             SetBkColor(hdc, RGB(0, 0, 0));
         }
-        
+
 
         // 폰트 관련 함수
         hFont = CreateFontIndirect(&LogFont);
@@ -930,6 +983,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SetCaretPos(size.cx + g_fOffsetX, iLine * g_fOffsetY);
             TextOutA(hdc, g_fOffsetX, g_fOffsetY * iLine, vectext.at(count).c_str(), vectext.at(count).length());
         }
+
+
 
 
         SelectObject(hdc, OldFont);
@@ -971,10 +1026,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     //	그림 그리는 중( 마우스가 눌린 상태에서만 )
     //	마우스 이동
-    case WM_MOUSEMOVE:		
+    case WM_MOUSEMOVE:
     {
         // 마우스가 눌려있는가?
-        if (g_bDraw == true)	
+        if (g_bDraw == true)
         {
             // DC를 얻어온다.
             HDC hDC = GetDC(hWnd);
@@ -1001,7 +1056,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     //	그림 그리기 끝
-    case WM_LBUTTONUP:		
+    case WM_LBUTTONUP:
     {
         //	마우스가 눌려있다가 떼진 경우이므로, 그리는 동작이 끝났음을 의미
         g_bDraw = false;
@@ -1010,6 +1065,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     case WM_DESTROY:
+        closesocket(s);
+        WSACleanup();
         HideCaret(hWnd);
         DestroyCaret();
         PostQuitMessage(0);
@@ -1019,7 +1076,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     return 0;
-    
+
 }
 
 // 정보 대화 상자의 메시지 처리기입니다.
@@ -1128,7 +1185,7 @@ INT_PTR CALLBACK ADDNOUNLIST(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
             // 명사 파일에서 명사 목록을 불러온다.
             vecNounBuffer = OutFromFile(cFilePath, 0, false);
 
-            
+
 
             for (int i = 0; i < vecNounBuffer.size(); i++)
             {
@@ -1249,6 +1306,56 @@ INT_PTR CALLBACK ADDNOUNLIST(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 }
 
 
+INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+
+    static HWND hList;
+
+    switch (iMsg)
+    {
+    case WM_INITDIALOG:
+        hList = GetDlgItem(hDlg, IDC_LIST_TALK);
+        g_hDlg_Talk = hList;
+        return (INT_PTR)TRUE;
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case ID_SEND:
+            if (s == INVALID_SOCKET)
+                return (INT_PTR)FALSE;
+            else
+            {
+                GetDlgItemText(hDlg, IDC_EDIT1, socketstr, 20);
+#ifdef _UNICODE
+                iMsgLen = WideCharToMultiByte(CP_ACP, 0, socketstr, -1, NULL, 0, NULL, NULL);
+                WideCharToMultiByte(CP_ACP, 0, socketstr, -1, socketbuffer, iMsgLen, NULL, NULL);
+#else
+                strcpy_s(socketbuffer, str);
+                iMsgLen = strlen(socketbuffer);
+#endif
+                send(s, (LPSTR)socketbuffer, iMsgLen + 1, 0);
+                iSocketCount = 0;
+            }
+
+            SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)socketstr);
+            SetWindowText(GetDlgItem(hDlg, IDC_EDIT1), 0);
+
+            return (INT_PTR)TRUE;
+        case ID_CANCEL:
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        break;
+    case WM_CLOSE:
+        EndDialog(hDlg, LOWORD(wParam));
+        return (INT_PTR)TRUE;
+    }
+    return (INT_PTR)FALSE;
+}
+
+
 
 // 파일을 읽어온다.
 vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout)
@@ -1278,7 +1385,7 @@ vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout)
         WideCharToMultiByte(CP_ACP, 0, buffer, 500, cTemp, 500, NULL, NULL);
         vecbufferStorage.resize(vecbufferStorage.size() + 1);
         vecbufferStorage.at(vecbufferStorage.size() - 1).append(cTemp);
-        
+
     }
 
 
@@ -1288,4 +1395,11 @@ vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout)
     return vecbufferStorage;
 }
 
-
+void PrintMessage(HWND hList)
+{
+    if (_tcscmp(socketmsg, _T("")) && !bPaint)
+    {
+        SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)socketmsg);
+        bPaint = true;
+    }
+}
