@@ -36,6 +36,7 @@ static TCHAR socketstr[100];
 static TCHAR socketmsg[200];
 static bool bPaint;
 static HWND g_hDlg_Talk;
+static string g_sMyIp;
 
 
 
@@ -51,6 +52,7 @@ INT_PTR CALLBACK ADDNOUNLIST(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout);
 void PrintMessage(HWND hList);
+string GetMyIpAddress();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -1335,12 +1337,22 @@ INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
                 strcpy_s(socketbuffer, str);
                 iMsgLen = strlen(socketbuffer);
 #endif
-                send(s, (LPSTR)socketbuffer, iMsgLen + 1, 0);
+                g_sMyIp = GetMyIpAddress();
+                g_sMyIp += " : ";
+                g_sMyIp += socketbuffer;
+                memset(socketbuffer, 0, sizeof(socketbuffer));
+                strcpy_s(socketbuffer, g_sMyIp.c_str());
+                send(s, (LPSTR)socketbuffer, strlen(socketbuffer) + 1, 0);
                 iSocketCount = 0;
             }
+            iMsgLen = MultiByteToWideChar(CP_ACP, 0, g_sMyIp.c_str(), strlen(g_sMyIp.c_str()), NULL, NULL);
+            MultiByteToWideChar(CP_ACP, 0, g_sMyIp.c_str(), strlen(g_sMyIp.c_str()), socketstr, iMsgLen);
 
             SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)socketstr);
             SetWindowText(GetDlgItem(hDlg, IDC_EDIT1), 0);
+
+            memset(socketstr, 0, sizeof(socketstr));
+            g_sMyIp = "";
 
             return (INT_PTR)TRUE;
         case ID_CANCEL:
@@ -1397,9 +1409,42 @@ vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout)
 
 void PrintMessage(HWND hList)
 {
-    if (_tcscmp(socketmsg, _T("")) && !bPaint)
+    if (_tcscmp(socketmsg, _T("")))
     {
         SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)socketmsg);
         bPaint = true;
     }
+}
+
+string GetMyIpAddress()
+{
+    string strMyIp = "";
+    vector<sockaddr_in> vecMyIp;
+    
+
+    char myaddr[256];
+
+    PHOSTENT pHostInfo;
+
+
+    gethostname(myaddr, sizeof(myaddr));
+    pHostInfo = gethostbyname(myaddr);
+
+    if (pHostInfo)
+    {
+        for (int i = 0; pHostInfo->h_addr_list[i] != NULL; i++)
+        {
+            memcpy(&addr.sin_addr, pHostInfo->h_addr_list[i],
+                pHostInfo->h_length);
+            vecMyIp.push_back(addr);
+        }
+    }
+
+    for (int i = 0; i < vecMyIp.size(); i++)
+    {
+        strMyIp += inet_ntoa(vecMyIp.at(i).sin_addr);
+        strMyIp += "\n";
+    }
+
+    return strMyIp;
 }
