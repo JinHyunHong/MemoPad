@@ -228,13 +228,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         WSAStartup(MAKEWORD(2, 2), &wsadata);
         s = socket(AF_INET, SOCK_STREAM, 0);
-        addr.sin_family = AF_INET;
-        addr.sin_port = 20;
-        addr.sin_addr.s_addr = inet_addr("127.0.0.1");
         WSAAsyncSelect(s, hWnd, WM_ASYNC, FD_READ);
         bPaint = false;
-        if (connect(s, (LPSOCKADDR)&addr, sizeof(addr)) == -1)
-            return 0;
 
         iLine = 0;
         iCount = 0;
@@ -1361,7 +1356,28 @@ INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
             memset(socketstr, 0, sizeof(socketstr));
             g_sMyIp = "";
 
+
             return (INT_PTR)TRUE;
+
+        case IDC_BUTTON_CONNECT:
+        {
+            TCHAR tIPAdress[20] = { 0, };
+            char cIPAddress[20] = { 0, };
+            GetDlgItemText(hDlg, IDC_EDIT_IP, tIPAdress, 20);
+            iMsgLen = WideCharToMultiByte(CP_ACP, 0, tIPAdress, -1, NULL, 0, NULL, NULL);
+            WideCharToMultiByte(CP_ACP, 0, tIPAdress, -1, cIPAddress, iMsgLen, NULL, NULL);
+
+            addr.sin_family = AF_INET;
+            addr.sin_port = 20;
+            addr.sin_addr.s_addr = inet_addr(cIPAddress);
+            if (connect(s, (LPSOCKADDR)&addr, sizeof(addr)) == -1)
+            {
+                return (INT_PTR)FALSE;
+            }
+
+        }
+            return (INT_PTR)TRUE;
+
         case ID_CANCEL:
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;

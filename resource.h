@@ -24,9 +24,11 @@
 #define ID_CANCEL                       1002
 #define ID_OK                           1003
 #define IDC_EDIT2                       1004
+#define IDC_EDIT_IP                     1004
 #define IDC_LIST_Name                   1008
 #define ID_SEND                         1012
 #define IDC_LIST_TALK                   1013
+#define IDC_BUTTON_CONNECT              1014
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -58,7 +60,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        134
 #define _APS_NEXT_COMMAND_VALUE         32799
-#define _APS_NEXT_CONTROL_VALUE         1014
+#define _APS_NEXT_CONTROL_VALUE         1015
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

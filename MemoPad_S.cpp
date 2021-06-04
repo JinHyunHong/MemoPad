@@ -230,7 +230,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         s = socket(AF_INET, SOCK_STREAM, 0);
         addr.sin_family = AF_INET;
         addr.sin_port = 20;
-        addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        addr.sin_addr.s_addr = inet_addr(GetMyIpAddress().c_str());
         bind(s, (LPSOCKADDR)&addr, sizeof(addr));
         WSAAsyncSelect(s, hWnd, WM_ASYNC, FD_ACCEPT);
         bPaint = false;
@@ -1329,6 +1329,7 @@ INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
     case WM_INITDIALOG:
         hList = GetDlgItem(hDlg, IDC_LIST_TALK);
         g_hDlg_Talk = hList;
+        SetWindowText(GetDlgItem(hDlg, IDC_EDIT_IP), L"Server");
         return (INT_PTR)TRUE;
     case WM_COMMAND:
         switch (LOWORD(wParam))
