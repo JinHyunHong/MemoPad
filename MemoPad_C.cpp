@@ -106,12 +106,14 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     iHour = g_SystemTime.wHour;
     iHour = 20;
 
+    // 6시 이상 19시 미만 흰색 배경
     if (iHour > 5 && iHour < 19)
     {
         g_WindowBrush = (HBRUSH)GetStockObject(WHITE_BRUSH);
         fColor = RGB(0, 0, 0);
     }
 
+    // 이외 시간 검은색 배경
     else
     {
         g_WindowBrush = (HBRUSH)GetStockObject(BLACK_BRUSH);
