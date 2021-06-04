@@ -681,8 +681,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
         case ID_HIGHPEN:
-        {
+        { 
+            // 메뉴의 상태를 얻어온다
             UINT state = GetMenuState(hMenu, ID_HIGHPEN, MF_BYCOMMAND);
+            // 체크가 되었을 경우
             if (state == MF_CHECKED)
             {
                 CheckMenuItem(hMenu, ID_HIGHPEN, MF_UNCHECKED);
@@ -692,7 +694,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 bTextUpdate = true;
                 g_bDraw = false;
             }
-
+            
+            // 체크가 되어 있지 않을 경우
             else
             {
                 CheckMenuItem(hMenu, ID_HIGHPEN, MF_CHECKED);
