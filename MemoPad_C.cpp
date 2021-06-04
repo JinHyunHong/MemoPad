@@ -463,6 +463,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 HDC hdc = GetDC(hWnd);
                 fColor = FONT.rgbColors;
             }
+            // 윈도우 텍스트를 업데이트 해줍니다.
             InvalidateRgn(hWnd, NULL, TRUE);
             CreateCaret(hWnd, NULL, 3, 15);
             bTextUpdate = true;
@@ -708,6 +709,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case ID_LineSpacing:
             // 줄 간격을 설정한다.
             DialogBox(g_hInst, MAKEINTRESOURCE(IDD_LINESPACING), hWnd, LINESPACING);
+            // 윈도우 텍스트를 업데이트 해줍니다.
             InvalidateRect(hWnd, NULL, TRUE);
             CreateCaret(hWnd, NULL, 3, 15);
             bTextUpdate = true;
