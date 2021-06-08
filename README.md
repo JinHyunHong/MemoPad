@@ -1,24 +1,26 @@
 MemoPad
 =============
+![MemoPad](https://1.bp.blogspot.com/-Sv0IZCRnNT8/YL8jBT28edI/AAAAAAAABYc/Jq5Z5rIJ8OYYVvhmZhlAZmFy2My84-sbACLcBGAsYHQ/s840/%25EB%25AC%25B4%25EC%25A0%259C.png)
 
 Contributors
 -------------
-1. JinHyunHong (Team Leader) 홍진현 학생
 
-2. didthgml7545 (Collaborator) 양소희 학생
+```sh
 
-3. Jong-hyeak (Collaborator) 안종혁 학생
+JinHyunHong (Team Leader) 홍진현 학생
 
-4. JunYoungHa (Collaborator) 하준용 학생
+didthgml7545 (Collaborator) 양소희 학생
 
-5. khjkhb (Collaborator) 김혜준 학생
+Jong-hyeak (Collaborator) 안종혁 학생
 
+JunYoungHa (Collaborator) 하준용 학생
+
+khjkhb (Collaborator) 김혜준 학생
+```
 
 Description
 -------------
-A different notepad pad system
-
---> [Document](https://www.dropbox.com/s/3omp4nqzt911sro/%EB%A9%94%EB%AA%A8%20%ED%8C%A8%EB%93%9C%20%EA%B8%B0%EB%8A%A5%20%EC%84%A4%EB%AA%85.pdf?dl=0)
+* [Wiki](https://github.com/JinHyunHong/MemoPad/wiki)
 
 
 
