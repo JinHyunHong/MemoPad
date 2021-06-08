@@ -41,6 +41,7 @@ static string g_sMyIp;
 
 
 
+
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -51,7 +52,7 @@ INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 INT_PTR CALLBACK ADDNOUNLIST(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout);
-void PrintMessage(HWND hList);
+void PrintMessage(HWND hList, TCHAR* Msg);
 string GetMyIpAddress();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -258,8 +259,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 #else
             strcpy_s(msg, buffer);
 #endif      
-            PrintMessage(g_hDlg_Talk);
+            if (!g_hDlg_Talk)
+            {
+                MessageBox(hWnd, socketmsg, L"메세지 도착", MB_OK);
+            }
+            
+            PrintMessage(g_hDlg_Talk, socketmsg);
             break;
+
+
         default:
             break;
         }
@@ -1370,20 +1378,23 @@ INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
             addr.sin_family = AF_INET;
             addr.sin_port = 20;
             addr.sin_addr.s_addr = inet_addr(cIPAddress);
-            if (connect(s, (LPSOCKADDR)&addr, sizeof(addr)) == -1)
+            if (connect(s, (LPSOCKADDR)&addr, sizeof(addr)) == SOCKET_ERROR)
             {
                 return (INT_PTR)FALSE;
             }
+                
 
         }
             return (INT_PTR)TRUE;
 
         case ID_CANCEL:
+            g_hDlg_Talk = NULL;
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         }
         break;
     case WM_CLOSE:
+        g_hDlg_Talk = NULL;
         EndDialog(hDlg, LOWORD(wParam));
         return (INT_PTR)TRUE;
     }
@@ -1430,11 +1441,11 @@ vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout)
     return vecbufferStorage;
 }
 
-void PrintMessage(HWND hList)
+void PrintMessage(HWND hList, TCHAR* Msg)
 {
-    if (_tcscmp(socketmsg, _T("")))
+    if (_tcscmp(Msg, _T("")))
     {
-        SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)socketmsg);
+        SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)Msg);
         bPaint = true;
     }
 }

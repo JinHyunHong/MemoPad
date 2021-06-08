@@ -51,7 +51,7 @@ INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 INT_PTR CALLBACK ADDNOUNLIST(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout);
-void PrintMessage(HWND hList);
+void PrintMessage(HWND hList, TCHAR* Msg);
 string GetMyIpAddress();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -252,9 +252,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         switch (lParam)
         {
         case FD_ACCEPT:
+        {
             iSize = sizeof(c_addr);
             cs = accept(s, (LPSOCKADDR)&c_addr, &iSize);
             WSAAsyncSelect(cs, hWnd, WM_ASYNC, FD_READ);
+            TCHAR ConnectMsg[50] = L"클라이언트와 연결되었습니다.";
+            PrintMessage(g_hDlg_Talk, ConnectMsg);
+            send(cs, (LPSTR)"서버와 연결되었습니다.", strlen("서버와 연결되었습니다.") + 1, 0);
+        }
             break;
         case FD_READ:
             iMsgLen = recv(cs, socketbuffer, 100, 0);
@@ -268,8 +273,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 #else
             strcpy_s(msg, buffer);
 #endif      
-            PrintMessage(g_hDlg_Talk);
+            if (!g_hDlg_Talk)
+            {
+                MessageBox(hWnd, socketmsg, L"메세지 도착", MB_OK);
+            }
+
+            PrintMessage(g_hDlg_Talk, socketmsg);
             break;
+
+
         default:
             break;
 
@@ -1366,11 +1378,13 @@ INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
             return (INT_PTR)TRUE;
         case ID_CANCEL:
+            g_hDlg_Talk = NULL;
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         }
         break;
     case WM_CLOSE:
+        g_hDlg_Talk = NULL;
         EndDialog(hDlg, LOWORD(wParam));
         return (INT_PTR)TRUE;
     }
@@ -1417,11 +1431,11 @@ vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout)
     return vecbufferStorage;
 }
 
-void PrintMessage(HWND hList)
+void PrintMessage(HWND hList, TCHAR* Msg)
 {
-    if (_tcscmp(socketmsg, _T("")))
+    if (_tcscmp(Msg, _T("")))
      {
-         SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)socketmsg);
+         SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)Msg);
          bPaint = true;
      }
 }
