@@ -1376,7 +1376,7 @@ INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
             WideCharToMultiByte(CP_ACP, 0, tIPAdress, -1, cIPAddress, iMsgLen, NULL, NULL);
 
             addr.sin_family = AF_INET;
-            addr.sin_port = htons(8080);
+            addr.sin_port = 8080;
             addr.sin_addr.s_addr = inet_addr(cIPAddress);
             if (connect(s, (LPSOCKADDR)&addr, sizeof(addr)) == SOCKET_ERROR)
             {
