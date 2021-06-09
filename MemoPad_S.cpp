@@ -229,7 +229,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         WSAStartup(MAKEWORD(2, 2), &wsadata);
         s = socket(AF_INET, SOCK_STREAM, 0);
         addr.sin_family = AF_INET;
-        addr.sin_port = 8080; // 20
+        addr.sin_port = htons(8080); // 20
         addr.sin_addr.s_addr = inet_addr(GetMyIpAddress().c_str());
         bind(s, (LPSOCKADDR)&addr, sizeof(addr));
         WSAAsyncSelect(s, hWnd, WM_ASYNC, FD_ACCEPT);
