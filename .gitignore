@@ -55,7 +55,7 @@ dlldata.c
 *.idb
 *.obj
 *.res
-*iobj
-*ipdb
+*.iobj
+*.ipdb
 MemoPad.vcxproj.FileListAbsolute.txt
 
