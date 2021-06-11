@@ -8,7 +8,7 @@
 #define MAX_LINE 20
 #define MAX_NOUN_SIZE 10
 
-// 전역 변수:
+// 전역 변수
 HINSTANCE g_hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
@@ -16,6 +16,7 @@ RECT g_WindowRC = { 0, 0, 800, 500 };
 static float g_fOffsetX;
 static float g_fOffsetY;
 WCHAR g_CH_SPELLING_Temp[MAX_NOUN_SIZE];
+static int iFontSize = 15;
 
 // 배경 처리
 static HBRUSH g_WindowBrush;
@@ -105,7 +106,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     SYSTEMTIME g_SystemTime;
     GetLocalTime(&g_SystemTime);
     iHour = g_SystemTime.wHour;
-    iHour = 20;
 
     // 6시 이상 19시 미만 흰색 배경
     if (iHour > 5 && iHour < 19)
@@ -204,8 +204,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     // 폰트 관련 변수 선언
     CHOOSEFONT FONT;
-    HFONT hFont, OldFont = 0;
+    HFONT hFont, OldFont;
     static LOGFONT LogFont;
+    static bool bFontUpdate;
 
     //펜 관련 변수 선언
     static bool g_bDraw = false;	//	마우스가 눌린 상태인지 확인할 수 있는 bool 변수
@@ -240,7 +241,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         bTextUpdate = false;
         bInputAble = true;
         iDrawCount = -1;
-        CreateCaret(hWnd, NULL, 3, 15);
+        bFontUpdate = false;
+
+        CreateCaret(hWnd, NULL, 3, iFontSize);
         break;
 
     case WM_ASYNC:
@@ -353,7 +356,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             InvalidateRect(hWnd, NULL, TRUE);
-            CreateCaret(hWnd, NULL, 3, 15);
+            CreateCaret(hWnd, NULL, 3, iFontSize);
             bTextUpdate = true;
             UpdateWindow(hWnd);
         }
@@ -448,13 +451,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             InvalidateRect(hWnd, NULL, TRUE);
-            CreateCaret(hWnd, NULL, 3, 15);
+            CreateCaret(hWnd, NULL, 3, iFontSize);
             bTextUpdate = true;
             UpdateWindow(hWnd);
             break;
         }
 
         case ID_FONT:
+        {
             // 글자에 폰트를 적용한다.
             memset(&FONT, 0, sizeof(CHOOSEFONT));
             FONT.lStructSize = sizeof(CHOOSEFONT);
@@ -466,12 +470,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 HDC hdc = GetDC(hWnd);
                 fColor = FONT.rgbColors;
             }
-            // 윈도우 텍스트를 업데이트 해줍니다.
+
             InvalidateRgn(hWnd, NULL, TRUE);
-            CreateCaret(hWnd, NULL, 3, 15);
-            bTextUpdate = true;
-            UpdateWindow(hWnd);
-            break;
+            bFontUpdate = true;
+        }
+        break;
 
             // 자동 명사 고침
         case ID_AUTONOUNFIX:
@@ -539,7 +542,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
                     MessageBox(hWnd, L"글자 수가 3 이상 단어만 검색할 수 있습니다.", L"주의", MB_OK);
                     InvalidateRect(hWnd, NULL, TRUE);
-                    CreateCaret(hWnd, NULL, 3, 15);
+                    CreateCaret(hWnd, NULL, 3, iFontSize);
                     bTextUpdate = true;
                     break;
                 }
@@ -578,7 +581,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     {
                         MessageBox(hWnd, L"텍스트 내용과 연관된 단어를 찾을 수 없습니다.", L"찾을 수 없음", MB_OK);
                         InvalidateRect(hWnd, NULL, TRUE);
-                        CreateCaret(hWnd, NULL, 3, 15);
+                        CreateCaret(hWnd, NULL, 3, iFontSize);
                         bTextUpdate = true;
                         break;
                     }
@@ -618,7 +621,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         vecStorageText.at(StorReplacePos.y).insert(StorReplacePos.x, sNoun);
                         InvalidateRect(hWnd, NULL, TRUE);
                         bTextUpdate = true;
-                        CreateCaret(hWnd, NULL, 3, 15);
+                        CreateCaret(hWnd, NULL, 3, iFontSize);
                         break;
                     }
 
@@ -658,7 +661,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             vectext.at(TextReplacePos.y).insert(TextReplacePos.x, sNoun);
                             InvalidateRect(hWnd, NULL, TRUE);
                             bTextUpdate = true;
-                            CreateCaret(hWnd, NULL, 3, 15);
+                            CreateCaret(hWnd, NULL, 3, iFontSize);
                             break;
                         }
 
@@ -675,7 +678,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         InvalidateRect(hWnd, NULL, TRUE);
-        CreateCaret(hWnd, NULL, 3, 15);
+        CreateCaret(hWnd, NULL, 3, iFontSize);
         bTextUpdate = true;
         break;
 
@@ -717,16 +720,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             DialogBox(g_hInst, MAKEINTRESOURCE(IDD_LINESPACING), hWnd, LINESPACING);
             // 윈도우 텍스트를 업데이트 해줍니다.
             InvalidateRect(hWnd, NULL, TRUE);
-            CreateCaret(hWnd, NULL, 3, 15);
+            CreateCaret(hWnd, NULL, 3, iFontSize);
             bTextUpdate = true;
             break;
 
         case ID_TALK:
             DialogBox(g_hInst, MAKEINTRESOURCE(IDD_TALK), hWnd, TALK);
+            InvalidateRect(hWnd, NULL, TRUE);
+            CreateCaret(hWnd, NULL, 3, iFontSize);
+            bTextUpdate = true;
             break;
 
         case IDM_ABOUT:
             DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            InvalidateRect(hWnd, NULL, TRUE);
+            CreateCaret(hWnd, NULL, 3, iFontSize);
+            bTextUpdate = true;
             break;
         case IDM_EXIT:
             DestroyWindow(hWnd);
@@ -882,7 +891,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         if (!bFind)
                         {
                             InvalidateRect(hWnd, NULL, TRUE);
-                            CreateCaret(hWnd, NULL, 3, 15);
+                            CreateCaret(hWnd, NULL, 3, iFontSize);
                             bTextUpdate = true;
                             break;
                         }
@@ -921,7 +930,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             vectext.at(StorReplacePos.y).insert(StorReplacePos.x, sNoun);
                             InvalidateRect(hWnd, NULL, TRUE);
                             bTextUpdate = true;
-                            CreateCaret(hWnd, NULL, 3, 15);
+                            CreateCaret(hWnd, NULL, 3, iFontSize);
                             break;
                         }
                     }
@@ -997,7 +1006,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
 
-
+        if (bFontUpdate)
+        {
+            InvalidateRgn(hWnd, NULL, TRUE);
+            iFontSize = size.cy;
+            CreateCaret(hWnd, NULL, 3, iFontSize);
+            bTextUpdate = true;
+            bFontUpdate = false;
+            UpdateWindow(hWnd);
+        }
 
         SelectObject(hdc, OldFont);
         DeleteObject(hFont);
