@@ -18,6 +18,7 @@
 #define IDD_DIALOG_NOUNLIST             132
 #define IDD_DIALOG1                     133
 #define IDD_TALK                        133
+#define IDD_NICKNAME                    134
 #define IDC_EDIT1                       1000
 #define IDC_EDITSTR                     1000
 #define ID_CHANGE                       1001
@@ -51,6 +52,7 @@
 #define ID_32796                        32796
 #define ID_TALK                         32797
 #define ID_MANUALNOUNFIX                32798
+#define ID_NICKNAME                     32800
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -58,8 +60,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        134
-#define _APS_NEXT_COMMAND_VALUE         32799
+#define _APS_NEXT_RESOURCE_VALUE        135
+#define _APS_NEXT_COMMAND_VALUE         32801
 #define _APS_NEXT_CONTROL_VALUE         1015
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

@@ -17,6 +17,7 @@ static float g_fOffsetX;
 static float g_fOffsetY;
 WCHAR g_CH_SPELLING_Temp[MAX_NOUN_SIZE];
 static int iFontSize = 15;
+static TCHAR strNickName[20];
 
 // 배경 처리
 static HBRUSH g_WindowBrush;
@@ -37,7 +38,6 @@ static TCHAR socketstr[100];
 static TCHAR socketmsg[200];
 static bool bPaint;
 static HWND g_hDlg_Talk;
-static string g_sMyIp;
 
 
 
@@ -51,6 +51,7 @@ INT_PTR CALLBACK CH_SPELLING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 INT_PTR CALLBACK LINESPACING(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK ADDNOUNLIST(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK NICKNAME(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
 vector<string> OutFromFile(TCHAR filename[], HWND hWnd, bool bTextout);
 void PrintMessage(HWND hList, TCHAR* Msg);
 string GetMyIpAddress();
@@ -247,6 +248,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         bInputAble = true;
         iDrawCount = -1;
         bFontUpdate = false;
+        memset(strNickName, 0, sizeof(TCHAR) * lstrlen(strNickName));
         CreateCaret(hWnd, NULL, 3, iFontSize);
         break;
 
@@ -481,7 +483,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             FONT.Flags = CF_EFFECTS | CF_SCREENFONTS;
             if (ChooseFont(&FONT) != 0)
             {
-                HDC hdc = GetDC(hWnd);
                 fColor = FONT.rgbColors;
             }
 
@@ -740,6 +741,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case ID_TALK:
             DialogBox(g_hInst, MAKEINTRESOURCE(IDD_TALK), hWnd, TALK);
+            InvalidateRect(hWnd, NULL, TRUE);
+            CreateCaret(hWnd, NULL, 3, iFontSize);
+            bTextUpdate = true;
+            break;
+
+        case ID_NICKNAME:
+            DialogBox(g_hInst, MAKEINTRESOURCE(IDD_NICKNAME), hWnd, NICKNAME);
             InvalidateRect(hWnd, NULL, TRUE);
             CreateCaret(hWnd, NULL, 3, iFontSize);
             bTextUpdate = true;
@@ -1023,7 +1031,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             InvalidateRgn(hWnd, NULL, TRUE);
             iFontSize = size.cy;
-            CreateCaret(hWnd, NULL, 3, iFontSize);
+
+            // 현재 줄 글자가 없을 경우 이전 줄 세로 크기 계산
+            if (iFontSize == 0)
+            {
+                GetTextExtentPointA(hdc, vecStorageText.at(vecStorageText.size() - 1).c_str(), vecStorageText.at(vecStorageText.size() - 1).size(), &size);
+                CreateCaret(hWnd, NULL, 3, size.cy);
+            }
+
+            else
+            {
+                CreateCaret(hWnd, NULL, 3, iFontSize);
+            }
+
             bTextUpdate = true;
             bFontUpdate = false;
             UpdateWindow(hWnd);
@@ -1352,6 +1372,7 @@ INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
     UNREFERENCED_PARAMETER(lParam);
 
     static HWND hList;
+    static string strMyID;
 
     switch (iMsg)
     {
@@ -1375,22 +1396,35 @@ INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
 #else
                 strcpy_s(socketbuffer, str);
 #endif
-                g_sMyIp = GetMyIpAddress();
-                g_sMyIp += " : ";
-                g_sMyIp += socketbuffer;
+                if (_tcscmp(strNickName, _T("")) == 0)
+                {
+                    strMyID = GetMyIpAddress();
+                }
+
+                else
+                {
+                    char cTempID[20];
+                    iMsgLen = WideCharToMultiByte(CP_ACP, 0, strNickName, -1, NULL, 0, NULL, NULL);
+                    WideCharToMultiByte(CP_ACP, 0, strNickName, -1, cTempID, iMsgLen, NULL, NULL);
+                    strMyID += cTempID;
+                }
+
+                strMyID += " : ";
+                strMyID += socketbuffer;
+
                 memset(socketbuffer, 0, sizeof(socketbuffer));
-                strcpy_s(socketbuffer, g_sMyIp.c_str());
+                strcpy_s(socketbuffer, strMyID.c_str());
                 send(cs, (LPSTR)socketbuffer, strlen(socketbuffer) + 1, 0);
                 iSocketCount = 0;
             }
-            iMsgLen = MultiByteToWideChar(CP_ACP, 0, g_sMyIp.c_str(), strlen(g_sMyIp.c_str()), NULL, NULL);
-            MultiByteToWideChar(CP_ACP, 0, g_sMyIp.c_str(), strlen(g_sMyIp.c_str()) , socketstr, iMsgLen);
+            iMsgLen = MultiByteToWideChar(CP_ACP, 0, strMyID.c_str(), strlen(strMyID.c_str()), NULL, NULL);
+            MultiByteToWideChar(CP_ACP, 0, strMyID.c_str(), strlen(strMyID.c_str()) , socketstr, iMsgLen);
 
             SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)socketstr);
             SetWindowText(GetDlgItem(hDlg, IDC_EDIT1), 0);
 
             memset(socketstr, 0, sizeof(socketstr));
-            g_sMyIp = "";
+            strMyID = "";
             
 
             return (INT_PTR)TRUE;
@@ -1402,6 +1436,35 @@ INT_PTR CALLBACK TALK(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
         break;
     case WM_CLOSE:
         g_hDlg_Talk = NULL;
+        EndDialog(hDlg, LOWORD(wParam));
+        return (INT_PTR)TRUE;
+    }
+    return (INT_PTR)FALSE;
+}
+
+
+INT_PTR CALLBACK NICKNAME(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+
+    switch (iMsg)
+    {
+    case WM_INITDIALOG:
+        return (INT_PTR)TRUE;
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case ID_OK:
+            GetDlgItemText(hDlg, IDC_EDIT1, strNickName, 20);
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        case ID_CANCEL:
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        break;
+    case WM_CLOSE:
         EndDialog(hDlg, LOWORD(wParam));
         return (INT_PTR)TRUE;
     }
